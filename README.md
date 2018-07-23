@@ -68,4 +68,31 @@ Save into `cols`.
 ```
 As you note there, the lambda function passed to each is a string. This is a topic I'm exploring.
 
+## Verbs 
+
+Some ideas for a vocabulary. 
+
+Also considering a short/symbol form of each verb. Pretty ugly choices presented below.
+
+```
+  CODE                 RESULT           SHORT VERB
+	(3,6,9) is "x".                       (3,6,9)->"x"
+	x amend (2,0).       (3,6,0).         x!(2,0)
+	x drop 1.            (3,6)            x__1
+  x except 3.          (6,9)            x%%3
+	x find 6.            1                x??6
+	x get 1.             6                x@1
+	x len.               3                x#
+	x take 4.            (3,6,9,3)        x^^4
+
+	rem "iteration:".
+
+	x each 'x*2'.        (6,12,18).
+	x over '+'.          18.
+	x scan '+'.          (9,18).
+	x where 'odd x'.     (0,2).
+
+	x take 1 aside '... -> "ans" reverse',ans -> "biganswer".
+```
+
 
