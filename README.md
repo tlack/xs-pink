@@ -78,6 +78,7 @@ Also considering a short/symbol form of each verb. Pretty ugly choices presented
 CODE                 RESULT           SHORT VERB
 
 (3,6,9) is "x".                       (3,6,9)->"x"
+(5,10) is "y".
 x amend (2,0).       (3,6,0).         x!(2,0)
 x drop 1.            (3,6)            x__1
 x except 3.          (6,9)            x%%3
@@ -86,12 +87,21 @@ x get 1.             6                x@1
 x len.               3                x#
 x take 4.            (3,6,9,3)        x^^4
 x where 3.           0                
+x list.              [3,6,9]          x:()       NB. General list, I guess?
 
-rem "iteration:".
-'x*25' get 3.        75               rem "get is also apply; dunno about dyad"
+Iteration verbs:
+
+'x*25' get 3.        75               x @ 3      NB. Get is also apply; dunno about dyad"
 x each 'x*2'.        (6,12,18)        x @@ 'x*2'
-x over '+'.          18               x @/ '+'
-x scan '+'.          (9,18)           x @\ '+'
+
+'x*y' is 'mul';                                  NB. these names are awful
+x:y eachleft'mul'    15,30,30,60,45,90           NB. gen list w/ :
+x:y eachright'mul'   15,30,45,30,60,90
+x:(y,2)eachboth'mul' 15,60,18                    NB. must be same length
+
+x over '+'.          18               x @/ '+'   NB. i hate the word reduce, but..
+x scan '+'.          (9,18)           x @\ '+'   NB. i know of no English terms for these
+x recurse '....'                                 NB. fixed pt/repeat-til-stable
 x where 'odd x'.     (0,2)            
 
 rem "aside: eval code in local context, set vars; discard result in expr".
