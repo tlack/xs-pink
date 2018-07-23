@@ -14,13 +14,12 @@ void emit(int i) { std::cout<<i; }
 int max(int a,int b) { return a>b?a:b; }
 TMPL(Tx) void _test(const char* n, Tx got, Tx expected) {
 	if(got==expected) emit(n,"passed");
-	else {
-		emit(n,"FAILED");
-		emit(expected,"expected");
-		emit(got,"got");
-		exit(1);
-	}
+	else { emit(n,"FAILED"); emit(expected,"expected"); emit(got,"got"); exit(1); }
 }
+
+// exceptions we toss about
+class XLengthErr{};
+class XValueErr{};
 
 // abstract holder
 class Xany;
@@ -112,14 +111,11 @@ void test_xvec() {
 	_test("xvec 4",v1.data[0],9);
 	_test("xvec 5",v1.n,2);
 	insert(v1,10);
-	emit(v1);
 	_test("xvec 6",v1.len,2);
 	_test("xvec 7",v1.data[v1.len-1],10);
 	Xstr v2(5,"Hello");
-	emit(v2);
 	v2.amend(1,'x');
 	_test("xvec amend 1",v2.data[1],'x');
-	emit(v2);
 	int i2[]={0,1};
 	int i3[]={55,66};
 	v1.amend(Xvec<int>(2,i2),Xvec<int>(2,i3));
@@ -129,19 +125,16 @@ void test_xvec() {
 	Xvec<double> v3(3);
 	insert(v3,10.10); insert(v3,20.20); insert(v3,30.30);
 	Xvec<double> v4=v3.each(test_xvec_f1);
-	emit(v4);
 	_test("xvec each 1",v4.len,v3.len);
 	_test("xvec each 2",v4.data[0],0.0);
 	_test("xvec each 3",v4.data[1],20.20);
 	_test("xvec each 4",v4.data[2],60.60);
 	Xvec<double> v5=v3.each(test_xvec_f2);
-	emit(v5);
 	_test("xvec each/all 1",v5.len,v3.len);
 	_test("xvec each/all 2",v5.data[0],0.0);
 	_test("xvec each/all 3",v5.data[1],20.20);
 	_test("xvec each/all 4",v5.data[2],60.60);
 }
-class Xvalerr{};
 template <typename Tk,typename Tx> class Xmap : public Xiter<Tx> {
 	public:
 	Xmap(int n_) : key(n_),data(n_),n(n_),len(0) {}; 
@@ -153,7 +146,7 @@ template <typename Tk,typename Tx> class Xmap : public Xiter<Tx> {
 	void amend(Tk x,Tx y) { int i=key.find(x); if(i!=-1) data.amend(i,y); }
 	void amend(Tk* x,Tx y) { amend(*x,y); }
 	void amend(Xvec<Tk> x,Xvec<Tx> y) {
-		if (x.len!=y.len) throw Xvalerr();
+		if (x.len!=y.len) throw XLengthErr();
 		for(int i=0;i<x.len;i++) amend(x[i],y[i]);
 	}
 	int find(Tx x) { for (int i=0; i<n; i++) if(data[i]==x) return i; return -1; }
