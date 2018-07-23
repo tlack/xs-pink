@@ -85,12 +85,14 @@ x find 6.            1                x??6
 x get 1.             6                x@1
 x len.               3                x#
 x take 4.            (3,6,9,3)        x^^4
+x where 3.           0                
 
 rem "iteration:".
-x each 'x*2'.        (6,12,18).
-x over '+'.          18.
-x scan '+'.          (9,18).
-x where 'odd x'.     (0,2).
+'x*25' get 3.        75               rem "get is also apply; dunno about dyad"
+x each 'x*2'.        (6,12,18)        x @@ 'x*2'
+x over '+'.          18               x @/ '+'
+x scan '+'.          (9,18)           x @\ '+'
+x where 'odd x'.     (0,2)            
 
 rem "aside: eval code in local context, set vars; discard result in expr".
 x take 1 aside '... -> "ans" reverse',ans -> "biganswer".
