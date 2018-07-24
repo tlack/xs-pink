@@ -59,16 +59,15 @@ void test_xsym() {
 _TX class Xvec;
 _TX class Xiter : public Xany {
 	public:
-	virtual ~Xiter(){};
+	virtual ~Xiter(){}
 	virtual Tx operator[](int n)=0;
 	virtual int find(Tx x)=0;
 	virtual bool has(Tx x) { return find(x)!=-1; }
-	virtual int len() { return _len; }
-	virtual void repr(OS& o) {  o<<"iter("<<_len<<")"; } 
+	virtual int len(){return 0;}
+	virtual void repr(OS& o) {  o<<"iter()"; } 
 	//virtual int insert(Tx x)=0;
-	int _len;
 };
-_TX Tx empty(Xiter<Tx>& x) { return x._len==0; }
+_TX Tx empty(Xiter<Tx>& x) { return x.len()==0; }
 _TX Tx get(Xiter<Tx>& x, int n) { return x[n]; }
 _TX Tx get(Xiter<Tx>* x, int n) { return (*x)[n]; }
 _TX int len(Xiter<Tx>& x) { return x.len(); }
@@ -125,7 +124,7 @@ _TX Xvec<Tx>* get(Xiter<Tx>& x, Xvec<Tx>*y) {
 	for(i=0;i<n;i++)insert(R,x[y[i]]); return R; }
 _TX int insert(Xvec<Tx>& x, Tx y) { return x.insert(y); }
 _TX int insert(Xvec<Tx>* x, Tx y) { return x->insert(y); }
-_TX int len(Xvec<Tx>& x) { return x.len(); }
+_TX int len(Xvec<Tx>& x) { emit("xvlen");return x.len(); }
 _TX Tx over(Xiter<Tx>& x, Tx(*cb)(Tx,Tx)) {
 	if(empty(x)) throw XLengthErr();
 	Tx r=x[0]; int n=len(x),i; for(i=1;i<n;i++)r=cb(r,x[i]); return r;  }
@@ -150,16 +149,13 @@ void test_xvec() {
 	emit("test(xvec)");
 	Xvec<int> v1(2);
 	_test("xvec 1",v1.n,2); _test("xvec 2",v1._len,0);
-	v1.insert(9);
-	_test("xvec 3",v1._len,1); _test("xvec 4",v1.data[0],9); _test("xvec 5",v1.n,2);
-	insert(v1,10);
-	_test("xvec 6",v1._len,2); _test("xvec 7",v1.data[v1._len-1],10);
+	v1.insert(9); _test("xvec 3",v1._len,1); _test("xvec 4",v1.data[0],9); _test("xvec 5",v1.n,2);
+	insert(v1,10); _test("xvec 6",v1._len,2); _test("xvec 7",v1.data[v1._len-1],10);
 	Xstr v2(5,"Hello");
 	v2.amend(1,'x'); _test("xvec amend 1",v2.data[1],'x');
 	int i2[]={0,1}; int i3[]={55,66}; v1.amend(Xvec<int>(2,i2),Xvec<int>(2,i3));
 	_test("xvec amend 2",v1[0],55); _test("xvec amend 3",v1[1],66);
-	Xvec<double> v3(3);
-	insert(v3,10.10); insert(v3,20.20); insert(v3,30.30);
+	Xvec<double> v3(3); insert(v3,10.10); insert(v3,20.20); insert(v3,30.30);
 	_test("xvec double 1",v3[0],10.10); _test("xvec double _len",v3._len,3);
 	Xvec<double>* v4=each(v3,test_xvec_f1);
 	_test("xvec each 1",v4->_len,v3._len); _test("xvec each 2",v4->data[0],0.0);
@@ -186,14 +182,12 @@ template <typename Tk,typename Tx> class Xmap : public Xiter<Tx> {
 	void amend(Tk x,Tx y) { int i=key.find(x); if(i!=-1) data.amend(i,y); }
 	void amend(Tk* x,Tx y) { amend(*x,y); }
 	void amend(Xvec<Tk> x,Xvec<Tx> y) {
-		if (x._len!=y._len) throw XLengthErr();
-		for(int i=0;i<x._len;i++) amend(x[i],y[i]);
+		if (x._len!=y._len) throw "length"; for(int i=0;i<x._len;i++) amend(x[i],y[i]);
 	}
 	int find(Tx x) { for (int i=0; i<n; i++) if(data[i]==x) return i; return -1; }
-	int insert(Tk x,Tx y) { 
-		if (_len>=n) return -1; key.insert(x); data.insert(y); 
-		return _len++; }
+	int insert(Tk x,Tx y) { if (_len>=n) return -1; key.insert(x); data.insert(y); return _len++; }
 	int insert(Tk* x,Tx y) { return insert(*x,y); }
+	int len() { return _len; }
 	void repr(OS& o) { o << "map(" << _len << "," << key << "," << data << ")"; }
 	Xvec<Tk> key; Xvec<Tx> data; int n,_len; char* tag="map"; };
 _TX class Xdict : public Xmap<Xsym,Tx> {
@@ -208,35 +202,22 @@ _TX class Xdict : public Xmap<Xsym,Tx> {
 void test_xmap() {
 	emit("test(xmap)");
 	Xmap<Xsym,int> v1(3);
-	_test("v1 empty", v1._len, 0);
-	_test("v1 n", v1.n, 3);
+	_test("v1 empty", v1._len, 0); _test("v1 len",v1.len(),0); _test("v1 n", v1.n, 3);
 	long i1[]={1, 2, 3, 4};
 	double d1[]={1.1, 2.2, 3.3, 4.4};
 	Xmap<long,double> v2(4, i1, d1);
-	_test("v2 1",v2._len,4);
-	_test("v2 2",v2.n,4);
-	_test("v2 3",v2[long(1)],1.1);
-	_test("v2 4",v2[long(4)],4.4);
-	v2.amend(long(3), 9.9);
-	_test("v2 5",v2[long(3)],9.9);
-	Xdict<int> v3(2);
-	_test("v3 1",v3._len,0);
-	_test("v3 2",v3.n,2);
+	_test("v2 1",v2._len,4); _test("v2 2",v2.n,4);
+	_test("v2 3",v2[long(1)],1.1); _test("v2 4",v2[long(4)],4.4);
+	_test("v4 5",len(v2),4); _test("v4 6",v2.len(),4);
+	v2.amend(long(3), 9.9); _test("v2 5",v2[long(3)],9.9);
+	Xdict<int> v3(2); _test("v3 1",v3._len,0); _test("v3 2",v3.n,2);
 	Xdict<int> v4(3);
-	Xsym x1("Hello");
-	Xsym x2("Goodbye");
-	int idx1=v4.insert(x1,33);
-	int idx2=v4.insert(x2,55);
-	_test("v4 1",v4.n,3);
-	_test("v4 2",v4._len,2);
-	_test("v4 3",v4[x1],33);
-	_test("v4 4",v4[x2],55);
-	v4.amend(x2,88);
-	_test("v4 5",v4[x2],88);
-	v4.insert(new Xsym("barf"),111);
-	_test("v4 6",v4[new Xsym("barf")],111);
-	v4.amend(new Xsym("barf"),999);
-	_test("v4 6-amend",v4[new Xsym("barf")],999);
+	Xsym x1("Hello"); Xsym x2("Goodbye");
+	int idx1=v4.insert(x1,33),idx2=v4.insert(x2,55);
+	_test("v4 1",v4.n,3); _test("v4 2",v4._len,2); _test("v4 3",v4[x1],33); _test("v4 4",v4[x2],55);
+	v4.amend(x2,88); _test("v4 5",v4[x2],88);
+	v4.insert(new Xsym("barf"),111); _test("v4 6",v4[new Xsym("barf")],111);
+	v4.amend(new Xsym("barf"),999); _test("v4 6-amend",v4[new Xsym("barf")],999);
 }
 class Xlist : public Xvec<Xany*> {
 	public:
@@ -247,18 +228,18 @@ _TX int insert(Xlist& x, Tx y) { return x.insert(y); }
 _TX int insert(Xlist* x, Tx y) { return x->insert(y); }
 void test_xlist() {
 	emit("test(xlist)");
-	Xlist L(5);
-	Xsym s1("abc");
-	Xsym s2("defghi");
+	Xlist L(5); 
+	Xsym s1("abc"); Xsym s2("defghi");
 	Xvec<int> v(3); insert(v,9); insert(v,8); insert(v,7);
-	// insert(L, &s1); insert(L, &s2); insert(L, &v); insert(L, &s2);
 	L.insert(&s1); insert(L, &s2); insert(L,&v); L.insert(&s2);
-	_test("xlist1",len(L),4);
-	_test("xlist2",*(Xsym*)L[0]==s1,true);
-	_test("xlist3",*(Xsym*)L[1]==s2,true);
-	_test("xlist4",(*(Xvec<int>*)L[2])[0]==v[0],true);
-	_test("xlist5",*(Xsym*)L[3]==s2,true);
+	_test("xlist1",len(L),4); _test("xlist2",*(Xsym*)L[0]==s1,true);
+	_test("xlist3",*(Xsym*)L[1]==s2,true); _test("xlist4",(*(Xvec<int>*)L[2])[0]==v[0],true);
+	_test("xlist5",*(Xsym*)L[3]==s2,true); _test("xlist6",L.len(),4);
 }
+class Xlinklist : public Xiter<Xany*> {
+	public:
+	Xlinklist(int sz){};
+};
 void test_genfn() {
 	emit("test(genfn)");
 	Xsym v_ss("imasym");
