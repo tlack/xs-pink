@@ -102,11 +102,11 @@ _TX class Xvec : public Xiter<Tx> {
 	Xvec(int n_,const Tx x[]) : n(n_),data(new Tx[n_]),_len(n_) { emit(n_); for(int i=0;i<n_;i++)data[i]=x[i]; };
 	~Xvec() { delete data; }
 	Tx operator[](int i) {return data[i];}
-	void amend(Xvec<int> x,Xvec<Tx> y) { for(int i=0;i<x._len;i++) amend(x[i],y[i]); };
-	void amend(int i,Tx y) { if(i>-1 && i<_len) data[i]=y; };
-	int find(Tx x) { for (int i=0; i<_len; i++) if(data[i]==x) return i; return -1; }
-	int insert(Tx x) { if (_len>=n) return -1; data[_len++]=x; return _len-1; }
-	int len() { return _len; }
+	virtual void amend(Xvec<int> x,Xvec<Tx> y) { for(int i=0;i<x._len;i++) amend(x[i],y[i]); };
+	virtual void amend(int i,Tx y) { if(i>-1 && i<_len) data[i]=y; };
+	virtual int find(Tx x) { for (int i=0; i<_len; i++) if(data[i]==x) return i; return -1; }
+	virtual int insert(Tx x) { if (_len>=n) return -1; data[_len++]=x; return _len-1; }
+	virtual int len() { return _len; }
 	void repr(OS& o) { 
 		o<<"vec("<<_len<<",("; 
 		for(int i=0;i<_len;i++) { o<<data[i]; if(i<_len-1) o<<","; } o<<"))"; }
@@ -238,9 +238,27 @@ void test_xmap() {
 	v4.amend(new Xsym("barf"),999);
 	_test("v4 6-amend",v4[new Xsym("barf")],999);
 }
-class Xcontext : public Xany {
+class Xlist : public Xvec<Xany*> {
+	public:
+	Xlist(int sz):Xvec<Xany*>(sz){};
+	void repr(OS& o){o<<"list("<<len()<<",";int n=len(),i;for(i=0;i<n;i++){data[i]->repr(o);if(i<n-1)o<<":";}o<<")";}
 };
-
+_TX int insert(Xlist& x, Tx y) { return x.insert(y); }
+_TX int insert(Xlist* x, Tx y) { return x->insert(y); }
+void test_xlist() {
+	emit("test(xlist)");
+	Xlist L(5);
+	Xsym s1("abc");
+	Xsym s2("defghi");
+	Xvec<int> v(3); insert(v,9); insert(v,8); insert(v,7);
+	// insert(L, &s1); insert(L, &s2); insert(L, &v); insert(L, &s2);
+	L.insert(&s1); insert(L, &s2); insert(L,&v); L.insert(&s2);
+	_test("xlist1",len(L),4);
+	_test("xlist2",*(Xsym*)L[0]==s1,true);
+	_test("xlist3",*(Xsym*)L[1]==s2,true);
+	_test("xlist4",(*(Xvec<int>*)L[2])[0]==v[0],true);
+	_test("xlist5",*(Xsym*)L[3]==s2,true);
+}
 void test_genfn() {
 	emit("test(genfn)");
 	Xsym v_ss("imasym");
@@ -262,6 +280,7 @@ void test() {
 	test_xvec();
 	test_xmap();
 	test_genfn();
+	test_xlist();
 	emit("tests passed");
 }
 int main() {
@@ -278,6 +297,12 @@ int main() {
  atomic: +, *, ..
  scalar: sum, count, ..
  generative: open, read, ..     // .. all others
+
+	
+	"0123456789"->"nums".
+	"1+2" state (nums:"n",
+	
+
 
 
 */
