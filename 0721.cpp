@@ -12,6 +12,7 @@ _TX void emit(Tx x,const char* lbl) { std::cout<<lbl<<": "<<x<<"\n"; }
 void emit(const char* s) { std::cout<<s<<"\n"; }
 void emit(int i) { std::cout<<i; }
 void emit(double i) { std::cout<<i; }
+int min(int a,int b) { return a<b?a:b; }
 int max(int a,int b) { return a>b?a:b; }
 _TX void _test(const char* n, Tx got, Tx expected) {
 	if(got==expected) emit(n,"passed");
@@ -43,6 +44,8 @@ class Xsym : public Xany {
 	char data[8];
 };
 bool operator==(Xsym x, Xsym y) { return strncmp(x.data,y.data,sizeof(x.data))==0; }
+bool operator==(const char* x, Xsym y) { return strncmp(x,y.data,min(strlen(x),sizeof(y.data)))==0; }
+bool operator==(Xsym x, const char* y) { return strncmp(x.data,y,min(strlen(y),sizeof(x.data)))==0; }
 void test_xsym() {
 	emit("test(xsym)");
 	Xsym a("hello");
@@ -126,20 +129,17 @@ _TX int insert(Xvec<Tx>& x, Tx y) { return x.insert(y); }
 _TX int insert(Xvec<Tx>* x, Tx y) { return x->insert(y); }
 _TX int len(Xvec<Tx>& x) { emit("xvlen");return x.len(); }
 _TX Tx over(Xiter<Tx>& x, Tx(*cb)(Tx,Tx)) {
-	if(empty(x)) throw XLengthErr();
+	if(empty(x)) throw "length";
 	Tx r=x[0]; int n=len(x),i; for(i=1;i<n;i++)r=cb(r,x[i]); return r;  }
 _TX Xvec<Tx>* scan(Xiter<Tx>& x, Tx(*cb)(Tx,Tx)) {
-	if(empty(x)) throw XLengthErr();
+	if(empty(x)) throw "length";
 	int n=len(x),i; Tx last; auto r=new Xvec<Tx>(n); 
 	insert(r,last=x[0]); for(i=1;i<n;i++)insert(r,last=cb(last,x[i])); return r;  }
 
 double test_xvec_f1(double x, int i) {
-	//emit(x);
-	//emit(i);
 	return x*i;
 }
 Xvec<double>* test_xvec_f2(Xiter<double>& x) {
-	emit(len(x),"test_xvec_f2 _len");
 	auto r=new Xvec<double>(len(x));
 	for(int i=0;i<len(x);i++) insert(r,x[i]*i);
 	return r;
@@ -147,8 +147,7 @@ Xvec<double>* test_xvec_f2(Xiter<double>& x) {
 double test_xvec_f3(double x,double y) { emit(x,"f3/1"); emit(y,"f3/2"); return x*y; }
 void test_xvec() {
 	emit("test(xvec)");
-	Xvec<int> v1(2);
-	_test("xvec 1",v1.n,2); _test("xvec 2",v1._len,0);
+	Xvec<int> v1(2); _test("xvec 1",v1.n,2); _test("xvec 2",v1._len,0);
 	v1.insert(9); _test("xvec 3",v1._len,1); _test("xvec 4",v1.data[0],9); _test("xvec 5",v1.n,2);
 	insert(v1,10); _test("xvec 6",v1._len,2); _test("xvec 7",v1.data[v1._len-1],10);
 	Xstr v2(5,"Hello");
@@ -238,8 +237,45 @@ void test_xlist() {
 }
 class Xlinklist : public Xiter<Xany*> {
 	public:
-	Xlinklist(int sz){};
+	typedef Xlinklist* list;
+	Xlinklist():item(nullptr),next(nullptr){};
+	Xlinklist(int sz):item(nullptr),next(nullptr){};
+	Xlinklist(Xany* ptr):item(ptr),next(nullptr){};
+	int find(Xany* ptr) {
+		if(item && item==ptr) return true;
+		if(next) return next->find(ptr); else return false;
+	}
+	int insert(Xany* ptr) {
+		if(item==nullptr) { item=ptr; return 0; }
+		if(next==nullptr) { next=new Xlinklist(ptr); return 1; }
+		else return 1+next->insert(ptr);
+	}
+	Xany* get(int i){ 
+		if(i==0) { if(item) return item; else throw "index"; }
+		if(next==nullptr) throw "index"; else return next->get(i-1); }
+	Xany* operator[](int i){return get(i);}
+	int len() { 
+		if(item==nullptr) return 0; 
+		if(next) return 1+next->len();
+		else return 1;
+	}
+	void repr(OS& o) { o<<"("; if(item) { item->repr(o); if(next) { o<<":"; next->repr(o); } } o<<")"; }
+	Xany* item; Xlinklist* next;
 };
+int insert(Xlinklist& x,Xany* y) { return x.insert(y); }
+int insert(Xlinklist* x,Xany* y) { return x->insert(y); }
+int len(Xlinklist& x) { return x.len(); }
+int len(Xlinklist* x) { return x->len(); }
+void test_xlinklist() {
+	emit("test(xlinklist)");
+	Xlinklist L;
+	_test("LL/1",len(L),0); _test("LL/2",L.len(),0);
+	Xvec<int> a(3); insert(a,5);insert(a,6);insert(a,7);
+	insert(L,&a);
+	_test("LL/3",len(L),1); _test("LL/4",((Xvec<int>*)L[0])->len(),3);
+	Xsym s("Blah"); insert(L,&s); _test("LL/5",(Xsym*)L[1],&s);
+	emit(L);
+}
 void test_genfn() {
 	emit("test(genfn)");
 	Xsym v_ss("imasym");
@@ -262,6 +298,7 @@ void test() {
 	test_xmap();
 	test_genfn();
 	test_xlist();
+	test_xlinklist();
 	emit("tests passed");
 }
 int main() {
@@ -272,7 +309,9 @@ int main() {
 
 /*
  
- xxx dict tag
+ xxx single item value xsingle<int>
+ xxx ponder delete behavior visavis xlist
+ xxx dict tag <- ??
 
  types of functions:
  atomic: +, *, ..
@@ -283,7 +322,7 @@ int main() {
 	"0123456789"->"nums".
 	"1+2" state (nums:"n",
 	
-
+	xxx 
 
 
 */
