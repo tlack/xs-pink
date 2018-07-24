@@ -7,13 +7,13 @@
 #include <string.h>
 using OS=std::ostream;
 
-#define TMPL(X) template<typename X>
-TMPL(Tx) void emit(Tx x,const char* lbl) { std::cout<<lbl<<": "<<x<<"\n"; }
+#define _TX template<typename Tx>
+_TX void emit(Tx x,const char* lbl) { std::cout<<lbl<<": "<<x<<"\n"; }
 void emit(const char* s) { std::cout<<s<<"\n"; }
 void emit(int i) { std::cout<<i; }
 void emit(double i) { std::cout<<i; }
 int max(int a,int b) { return a>b?a:b; }
-TMPL(Tx) void _test(const char* n, Tx got, Tx expected) {
+_TX void _test(const char* n, Tx got, Tx expected) {
 	if(got==expected) emit(n,"passed");
 	else { emit(n,"FAILED"); emit(expected,"expected"); emit(got,"got"); exit(1); }
 }
@@ -56,8 +56,8 @@ void test_xsym() {
 	_test("xsym 6",a==b,true);
 }
 //TMPL(Tx,Ty) typedef Ty *(Xiter1)(Tx x, int n);
-TMPL(Tx) class Xvec;
-TMPL(Tx) class Xiter : public Xany {
+_TX class Xvec;
+_TX class Xiter : public Xany {
 	public:
 	virtual ~Xiter(){};
 	virtual Tx operator[](int n)=0;
@@ -68,10 +68,11 @@ TMPL(Tx) class Xiter : public Xany {
 	//virtual int insert(Tx x)=0;
 	int _len;
 };
-TMPL(Tx) Tx empty(Xiter<Tx>& x) { return x._len==0; }
-TMPL(Tx) Tx get(Xiter<Tx>& x, int n) { return x[n]; }
-TMPL(Tx) Tx get(Xiter<Tx>* x, int n) { return (*x)[n]; }
-TMPL(Tx) int len(Xiter<Tx>& x) { return x.len(); }
+_TX Tx empty(Xiter<Tx>& x) { return x._len==0; }
+_TX Tx get(Xiter<Tx>& x, int n) { return x[n]; }
+_TX Tx get(Xiter<Tx>* x, int n) { return (*x)[n]; }
+_TX int len(Xiter<Tx>& x) { return x.len(); }
+_TX int len(Xiter<Tx>* x) { return x->len(); }
 
 class Xrange : public Xiter<int> {
 	public:
@@ -95,7 +96,7 @@ void test_xrange() {
 	_test("xrange 6",r1.find(13),3);
 }
 
-TMPL(Tx) class Xvec : public Xiter<Tx> {
+_TX class Xvec : public Xiter<Tx> {
 	public:
 	Xvec(int n_) : data(new Tx[n_]),n(n_),_len(0) {};
 	Xvec(int n_,const Tx x[]) : n(n_),data(new Tx[n_]),_len(n_) { emit(n_); for(int i=0;i<n_;i++)data[i]=x[i]; };
@@ -113,22 +114,22 @@ TMPL(Tx) class Xvec : public Xiter<Tx> {
 };
 typedef Xvec<int> Xint;
 typedef Xvec<char> Xstr;
-TMPL(Tx) void amend(Xvec<Tx>& x, int i, Tx y) { x.amend(i,y); }
-TMPL(Tx) void amend(Xvec<Tx>& x, Xvec<int> i, Xvec<Tx> y) { x.amend(i,y); }
-TMPL(Tx) Xvec<Tx>* each(Xiter<Tx>& x, Tx (*cb)(Tx,int)){ 
+_TX void amend(Xvec<Tx>& x, int i, Tx y) { x.amend(i,y); }
+_TX void amend(Xvec<Tx>& x, Xvec<int> i, Xvec<Tx> y) { x.amend(i,y); }
+_TX Xvec<Tx>* each(Xiter<Tx>& x, Tx (*cb)(Tx,int)){ 
 	int n=x.len(),i=0; auto R=new Xvec<Tx>(n); 
 	for(;i<n;i++)insert(R,cb(x[i],i)); return R; }
-TMPL(Tx) Xvec<Tx>* each(Xiter<Tx>& x, Xvec<Tx>* (*cb)(Xiter<Tx>&)) { return cb(x); }
-TMPL(Tx) Xvec<Tx>* get(Xiter<Tx>& x, Xvec<Tx>*y) { 
+_TX Xvec<Tx>* each(Xiter<Tx>& x, Xvec<Tx>* (*cb)(Xiter<Tx>&)) { return cb(x); }
+_TX Xvec<Tx>* get(Xiter<Tx>& x, Xvec<Tx>*y) { 
 	int n=y.len(),i; auto R=new Xvec<Tx>(n);
 	for(i=0;i<n;i++)insert(R,x[y[i]]); return R; }
-TMPL(Tx) int insert(Xvec<Tx>& x, Tx y) { return x.insert(y); }
-TMPL(Tx) int insert(Xvec<Tx>* x, Tx y) { return x->insert(y); }
-TMPL(Tx) int len(Xvec<Tx>& x) { return x.len(); }
-TMPL(Tx) Tx over(Xiter<Tx>& x, Tx(*cb)(Tx,Tx)) {
+_TX int insert(Xvec<Tx>& x, Tx y) { return x.insert(y); }
+_TX int insert(Xvec<Tx>* x, Tx y) { return x->insert(y); }
+_TX int len(Xvec<Tx>& x) { return x.len(); }
+_TX Tx over(Xiter<Tx>& x, Tx(*cb)(Tx,Tx)) {
 	if(empty(x)) throw XLengthErr();
 	Tx r=x[0]; int n=len(x),i; for(i=1;i<n;i++)r=cb(r,x[i]); return r;  }
-TMPL(Tx) Xvec<Tx>* scan(Xiter<Tx>& x, Tx(*cb)(Tx,Tx)) {
+_TX Xvec<Tx>* scan(Xiter<Tx>& x, Tx(*cb)(Tx,Tx)) {
 	if(empty(x)) throw XLengthErr();
 	int n=len(x),i; Tx last; auto r=new Xvec<Tx>(n); 
 	insert(r,last=x[0]); for(i=1;i<n;i++)insert(r,last=cb(last,x[i])); return r;  }
@@ -195,7 +196,7 @@ template <typename Tk,typename Tx> class Xmap : public Xiter<Tx> {
 	int insert(Tk* x,Tx y) { return insert(*x,y); }
 	void repr(OS& o) { o << "map(" << _len << "," << key << "," << data << ")"; }
 	Xvec<Tk> key; Xvec<Tx> data; int n,_len; char* tag="map"; };
-TMPL(Tx) class Xdict : public Xmap<Xsym,Tx> {
+_TX class Xdict : public Xmap<Xsym,Tx> {
 	public:
 	typedef Xmap<Xsym,Tx> super;
 	Xdict(int n):Xmap<Xsym,Tx>(n){};
