@@ -87,7 +87,7 @@ x get 1.             6                x@1
 x len.               3                x#
 x take 4.            (3,6,9,3)        x^^4
 x where 3.           0                
-x list.              [3,6,9]          x:()       NB. General list, I guess?
+x list.              [3,6,9]          ():x       NB. General list, I guess?
 
 Iteration verbs:
 
@@ -101,8 +101,8 @@ x:(y,2)eachboth'mul' 15,60,18                    NB. must be same length
 
 x over '+'.          18               x @/ '+'   NB. i hate the word reduce, but..
 x scan '+'.          (9,18)           x @\ '+'   NB. i know of no English terms for these
-x recurse '....'                                 NB. fixed pt/repeat-til-stable
-x where 'odd x'.     (0,2)            
+x recurse '....'                                 NB. 'exhaust' or fixed pt/repeat-til-stable
+x where 'odd x'.     (0,2) 
 
 rem "aside: eval code in local context, set vars; discard result in expr".
 x take 1 aside '... -> "ans" reverse',ans -> "biganswer".
