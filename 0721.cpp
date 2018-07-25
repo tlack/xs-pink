@@ -108,7 +108,10 @@ void test_xrange() {
 _TX class Xmutable : public Xiter<Tx> {
 	public:
 	virtual void amend(int i,Tx y)=0;
+	virtual int insert(Tx y)=0;
 };
+_TX int insert(Xmutable<Tx>& x,Tx y){return x.insert(y);}
+_TX int insert(Xmutable<Tx>* x,Tx y){return x->insert(y);}
 
 _TX class Xvec : public Xmutable<Tx> {
 	public:
@@ -143,15 +146,15 @@ typedef Xvec<int> Xint;
 typedef Xvec<char> Xstr;
 _TX void amend(Xmutable<Tx>& x, int i, Tx y) { x.amend(i,y); }
 //_TX void amend(Xvec<Tx>& x, Xvec<int> i, Xvec<Tx> y) { x.amend(i,y); }
-_TX void amend(Xvec<Tx>& x, Xvec<int>& i, Xvec<Tx> y) { x.amend(i,y); }
-//_TX void amend(Xvec<Tx>& x, Xvec<char> i, Tx y) { x.amend(i,y); }
-_TX void amend(Xvec<Tx>& x, Xvec<char>& i, Tx y) { x.amend(i,y); }
-//_TX void amend(Xvec<Tx>& x, Xvec<char> i, Xvec<Tx> y) { x.amend(i,y); }
-_TX void amend(Xvec<Tx>& x, Xvec<char>& i, Xvec<Tx> y) { x.amend(i,y); }
-_TX void amend(Xvec<Tx>* x, int i, Tx y) { x->amend(i,y); }
-//_TX void amend(Xvec<Tx>* x, Xvec<int> i, Xvec<Tx> y) { x->amend(i,y); }
-_TX void amend(Xvec<Tx>* x, Xvec<int>& i, Xvec<Tx> y) { x->amend(i,y); }
-//_TX void amend(Xvec<Tx>* x, Xvec<char> i, Tx y) { x->amend(i,y); }
+_TX void amend(Xmutable<Tx>& x, Xmutable<int>& i, Xmutable<Tx> y) { x.amend(i,y); }
+//_TX void amend(Xmutable<Tx>& x, Xmutable<char> i, Tx y) { x.amend(i,y); }
+_TX void amend(Xmutable<Tx>& x, Xmutable<char>& i, Tx y) { x.amend(i,y); }
+//_TX void amend(Xmutable<Tx>& x, Xmutable<char> i, Xmutable<Tx> y) { x.amend(i,y); }
+_TX void amend(Xmutable<Tx>& x, Xmutable<char>& i, Xmutable<Tx> y) { x.amend(i,y); }
+_TX void amend(Xmutable<Tx>* x, int i, Tx y) { x->amend(i,y); }
+//_TX void amend(Xmutable<Tx>* x, Xmutable<int> i, Xmutable<Tx> y) { x->amend(i,y); }
+_TX void amend(Xmutable<Tx>* x, Xmutable<int>& i, Xmutable<Tx> y) { x->amend(i,y); }
+//_TX void amend(Xmutable<Tx>* x, Xmutable<char> i, Tx y) { x->amend(i,y); }
 _TX void amend(Xvec<Tx>* x, Xvec<char>& i, Tx y) { 
 	emit("amend, v*, v&, tx");
 	emit(x);
@@ -355,8 +358,6 @@ _TXN class Xarray : public Xmutable<Tx> {
 	Tx data[N];
 	int _len,n;
 };
-_TXN int insert(Xarray<Tx,N>& x,Tx y){return x.insert(y);}
-_TXN int insert(Xarray<Tx,N>* x,Tx y){return x->insert(y);}
 void test_xarray() {
 	emit("test(xarray)");
 	auto x=Xarray<int,10>(10);
@@ -366,6 +367,28 @@ void test_xarray() {
 	amend(x,0,1);
 	_test("xa/7",x[0],1);
 }
+
+_TX class Xsingle : public Xmutable<Tx> { 
+	public:
+	Xsingle():n(1),_len(0){};
+	Xsingle(Tx x):n(1),_len(1){data=x;};
+	Tx operator[](int i) {return data;}
+	void amend(Xvec<int> x,Xvec<Tx> y) { for(int i=0;i<x._len;i++) amend(x[i],y[i]); };
+	void amend(int i,Tx y) { if(i==0) data=y; };
+	int find(Tx x) { if(data==x) return 0; else return -1; }
+	int insert(Tx x) { _len=1; data=x; return 0; }
+	int len() { return _len; }
+	void repr(OS& o) { o<<"val("<<data<<")"; } 
+	//virtual int insert(Tx x)=0;
+	int _len,n; Tx data;
+};
+
+void test_xsingle() {
+	emit("test(xsingle)");
+	Xsingle<int> s1(10);
+	_test("s1",len(s1),1);_test("s2",s1.len(),1);_test("s3",s1[0],10);
+}
+
 void test_genfn() {
 	emit("test(genfn)");
 	Xsym v_ss("imasym");
@@ -390,6 +413,7 @@ void test() {
 	test_xlist();
 	test_xlinklist();
 	test_xarray();
+	test_xsingle();
 	emit("tests passed");
 }
 void parse(){
