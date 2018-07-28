@@ -35,6 +35,7 @@ class Xany {
 	virtual void repr(std::ostream&os) { os<<"any()"; }
 };
 std::ostream& operator<<(std::ostream &os,Xany& x) { x.repr(os); return os; }
+std::ostream& operator<<(std::ostream &os,Xany* x) { x->repr(os); return os; }
 void emit(Xany& x,const char* lbl) { cout<<lbl<<": ";x.repr(cout);cout<<"\n"; }
 void emit(Xany* x,const char* lbl) { cout<<"z";cout<<lbl<<": ";x->repr(cout);cout<<"\n"; }
 void emit(Xany& x) { x.repr(std::cout); emit("\n"); }
@@ -110,6 +111,10 @@ class Xrange : public Xiter<int> {
 	int _len, start, end;
 };
 
+Xrange til(int n) {
+	return Xrange(0,n);
+}
+
 void test_xrange() {
 	auto r1=Xrange(10,20);
 	_test("xrange 1",len(r1),10);
@@ -136,15 +141,9 @@ _TX void amend(Xmutable<Tx>* x, Xiter<int>* i, Tx y) { for(int j=0;j<i->len();j+
 _TX void amend(Xmutable<Tx>* x, Xiter<int>* i, Xiter<Tx>* y) { x->amend(*i,*y); }
 _TX int insert(Xmutable<Tx>& x,Tx y){return x.insert(y);}
 _TX int insert(Xmutable<Tx>* x,Tx y){return x->insert(y);}
-
 _TX void fill(Xmutable<Tx>& x,Tx y){
 	int end_=x.size();
-	if(x.len()<x.size()) { end_=x.len(); 
-		emit(x.len(),"xl"); emit(x.size(),"n");
-		while (x.len()<x.size()) { 
-			emit(x.len()); insert(x,y); 
-		} 
-	}
+	if(x.len()<x.size()) { end_=x.len(); while (x.len()<x.size()) insert(x,y); }
 	for(int i=0;i<end_;i++) amend(x,i,y);
 }
 
@@ -154,21 +153,10 @@ _TX class Xvec : public Xmutable<Tx> {
 	Xvec(int n_,const Tx x[]) : n(n_),data(new Tx[n_]),_len(n_) { for(int i=0;i<n_;i++)data[i]=x[i]; };
 	// ~Xvec() { delete data; }
 	Tx operator[](int i) {return data[i];}
-	virtual void amend(Xvec<char> x,Tx y) { 
-		emit("aa");
-		for(int i=0;i<x._len;i++) {
-			int z=(int)x[i]; emit(z); 
-			amend(z,y); 
-		}
-	};
-	virtual void amend(Xvec<char> x,Xvec<Tx> y) { 
-		emit("ab");
-		for(int i=0;i<x._len;i++) {
-			int z=(int)x[1]; emit(z); amend((int)x[i],y[i]); 
-		}
-	};
+	virtual void amend(Xvec<char> x,Tx y) { for(int i=0;i<x._len;i++) { int z=(int)x[i]; amend(z,y); } };
+	virtual void amend(Xvec<char> x,Xvec<Tx> y) { for(int i=0;i<x._len;i++) { int z=(int)x[1]; amend((int)x[i],y[i]); } };
 	virtual void amend(Xvec<int> x,Xvec<Tx> y) { for(int i=0;i<x._len;i++) amend(x[i],y[i]); };
-	virtual void amend(int i,Tx y) { emit(i,"ai1"); emit(y,"ai2"); if(i>-1 && i<_len) data[i]=y; };
+	virtual void amend(int i,Tx y) { if(i>-1 && i<_len) data[i]=y; };
 	virtual int find(Tx x) { for (int i=0; i<_len; i++) if(data[i]==x) return i; return -1; }
 	virtual int insert(Tx x) { if (_len>=n) return -1; data[_len++]=x; return _len-1; }
 	virtual int len() { return _len; }
@@ -185,15 +173,12 @@ _TX void amend(Xvec<Tx>* x, Xvec<char>& i, Tx y) {
 //_TX void amend(Xvec<Tx>* x, Xvec<char> i, Xvec<Tx> y) { x->amend(i,y); }
 _TX void amend(Xvec<Tx>* x, Xvec<char>& i, Xvec<Tx> y) { x->amend(i,y); }
 _TX Xvec<int> compress(Xmutable<Tx>& x) {
-	int xn=x.len(),cnt=0;
-	for(int i=0;i<xn;i++) if(x[i]!=0) cnt++;
-	Xvec<int> R(cnt);
-	for(int i=0;i<xn;i++) if(x[i]!=0) insert(R,i);
+	int xn=x.len(),cnt=0; for(int i=0;i<xn;i++) if(x[i]!=0) cnt++;
+	Xvec<int> R(cnt); for(int i=0;i<xn;i++) if(x[i]!=0) insert(R,i);
 	return R;
 }
 template<typename Tx,typename Ty> Xvec<Tx>* each(Xiter<Tx>& x, Xvec<Ty> y){ // return y according to x
-	int n=x.len(),i=0; auto R=new Xvec<Tx>(n); 
-	for(;i<n;i++)insert(R,y[x[i]]); return R; }
+	int n=x.len(),i=0; auto R=new Xvec<Tx>(n); for(;i<n;i++)insert(R,y[x[i]]); return R; }
 template<typename Tx,typename Ty>  Xvec<Tx>* each(Xiter<Tx>& x, Xvec<Ty>* y){ return each(x,*y); }
 _TX Xvec<Tx>* each(Xiter<Tx>& x, Tx (*cb)(Tx,int)){ 
 	int n=x.len(),i=0; auto R=new Xvec<Tx>(n); 
@@ -202,16 +187,39 @@ _TX Xvec<Tx>* each(Xiter<Tx>& x, Xvec<Tx>* (*cb)(Xiter<Tx>&)) { return cb(x); }
 _TX void emit(Xvec<Tx>& x,const char* s) { emit(s); emit(x); }
 _TX void emit(Xvec<Tx>* x,const char* s) { emit(s); emit(x); }
 _TX Xvec<int> expand(Xmutable<Tx>& x) {
-	emit(max(x),"mx");
-	auto R=Xvec<int>(max(x));
-	emit(R.n);
-	emit("ff");
-	fill(R,0);
-	int xn=x.len();
-	emit(xn);
-	for(int i=0;i<xn;i++) amend(R,x[i],1);
+	auto R=Xvec<int>(max(x)); fill(R,0); int xn=x.len();
+	for(int i=0;i<xn;i++) amend(R,x[i],1); return R;
+}
+_TX Xvec<Tx> except(Xiter<Tx>& x,Tx y) {
+	int sz,i; for(i=0;i<x.len();i++) if(x[i]!=y) sz++;
+	auto R=Xvec<int>(sz); for(i=0;i<x.len();i++) if(x[i]!=y) insert(R,x[i]);
 	return R;
 }
+_TX Xvec<Tx> except(Xiter<Tx>& x,Xiter<Tx>& y) {
+	int sz,i; for(i=0;i<x.len();i++) if(!has(y,x[i])) sz++;
+	auto R=Xvec<int>(sz); for(i=0;i<x.len();i++) if(!has(y,x[i])) insert(R,x[i]);
+	return R;
+}
+_TX Xvec<Tx> except(Xrange x,Xiter<Tx>& y) {
+	int sz,i; for(i=0;i<x.len();i++) if(!has(y,x[i])) sz++;
+	auto R=Xvec<int>(sz); for(i=0;i<x.len();i++) if(!has(y,x[i])) insert(R,x[i]);
+	return R;
+}
+_TX Xvec<Tx> except(Xiter<Tx>& x,Xrange y) {
+	int sz,i; for(i=0;i<x.len();i++) if(!has(y,x[i])) sz++;
+	auto R=Xvec<int>(sz); for(i=0;i<x.len();i++) if(!has(y,x[i])) insert(R,x[i]);
+	return R;
+}
+_TX Xvec<Tx> recurse(Xvec<Tx> x, Tx y) {
+	Tx i=y; Tx last;
+	Xvec<Tx> r(x.len());
+	while (1) {
+		last=i; i=x[i];
+		if(i==last) return r;
+		else insert(r,i);
+	};
+	return r;
+};
 _TX Xvec<Tx>* get(Xiter<Tx>& x, Xvec<Tx>*y) { 
 	int n=y.len(),i; auto R=new Xvec<Tx>(n);
 	for(i=0;i<n;i++)insert(R,x[y[i]]); return R; }
@@ -321,6 +329,7 @@ void test_xmap() {
 	v4.amend(x2,88); _test("v4 5",v4[x2],88);
 	v4.insert(new Xsym("barf"),111); _test("v4 6",v4[new Xsym("barf")],111);
 	v4.amend(new Xsym("barf"),999); _test("v4 6-amend",v4[new Xsym("barf")],999);
+	emit(v4);
 }
 
 class Xlist : public Xvec<Xany*> {
@@ -482,6 +491,46 @@ void test_xbitset() {
 	_test("exp1",xp==take(b,len(xp)),true);
 }
 
+_TX class Xtree : public Xany {
+	public: 
+	Xvec<int> parents;
+	Xvec<Tx> data;
+	int last,n;
+	Xtree(int size) : parents(size), data(size), last(0), n(size) { };
+	Tx operator[](const int i) { return data[i]; };
+	Xvec<Tx> operator[](Xvec<int> x) { Xvec<Tx> r(len(x)); for(int i=0;i<x.len();i++) insert(r,data[x[i]]); return r; }
+	void amend(const int idx, const int parent, Tx y) { if(idx>n) throw "limit"; data.amend(data, idx, y); parents[idx]=parent; }
+	void amend(const int idx, Tx y) { if(idx>n) throw "limit"; data.amend(data, idx, y); }
+	Xvec<int> children(const int parent) {
+		int sz=0;        for(int i=0;i<last;i++) if(parents[i]==parent) sz++;
+		Xvec<int> r(sz); for(int i=0;i<last;i++) if(parents[i]==parent) insert(r, i);
+		return r;
+	};
+	int adopt(const int parent, const int child) { parents[child]=parent; return child; };
+	int adopt(const int parent, Xvec<int>& children) { for(int i=0;i<children.len();i++) parents[children[i]]=parent; return parent; };
+	Tx get(int i) { return data[i]; }
+	int insert(const int parent, Tx data_) { int i=data.insert(data_); parents.insert(parent); last=i+1; return i; }
+	Xvec<int> leaves() { return except(til(last), parents); }
+	int len() { return parents.len(); }
+	Xvec<int> path(const int child) { return recurse(parents, child); };
+	int parent(const int child) { return parents[child]; }
+	void repr(OS& o) { o<<"tree("; for(int i=0;i<last;i++) { o<<i<<":"<<get(i); if(i<last-1)o<<",";} o<<")"; }
+};
+_TX int insert(Xtree<Tx>& x, int i, Tx d) { return x.insert(i,d); }
+_TX int insert(Xtree<Tx>* x, int i, Tx d) { return x->insert(i,d); }
+_TX int len(Xtree<Tx>& x) { return x.len(); }
+_TX int len(Xtree<Tx>* x) { return x->len(); }
+
+void test_xtree() {
+	emit("test(xtree)");
+	auto xt=Xtree<Xsym*>(20);
+	auto s1=Xsym("Coco"),s2=Xsym("Molly"),s3=Xsym("Josef"),s4=Xsym("Arca");
+	int i1=insert(xt,0,&s1),i2=insert(xt,0,&s2),i3=insert(xt,1,&s3),i4=insert(xt,1,&s4);
+	_test("xtree1",xt.len(),4); _test("xtree2",xt.parent(i4),1);
+	auto p1=xt.path(i4); _test("xtree3",len(p1),2); _test("xtree4",p1[0],1); _test("xtree5",p1[1],0);
+	auto p2=xt.leaves(); _test("xtree6",len(p2),2); _test("xtree7",p2[0],2); _test("xtree8",p2[1],3);
+}
+
 void test_genfn() {
 	emit("test(genfn)");
 	Xsym v_ss("imasym");
@@ -508,6 +557,7 @@ void test() {
 	test_xarray();
 	test_xsingle();
 	test_xbitset();
+	test_xtree();
 	emit("tests passed");
 }
 void parse(){
