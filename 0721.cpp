@@ -139,6 +139,9 @@ _TX void amend(Xmutable<Tx>* x, int i, Tx y) { x->amend(i,y); }
 _TX void amend(Xmutable<Tx>* x, Xmutable<int>& i, Xmutable<Tx> y) { x->amend(i,y); }
 _TX void amend(Xmutable<Tx>* x, Xiter<int>* i, Tx y) { for(int j=0;j<i->len();j++) x->amend((*i)[j],y); }
 _TX void amend(Xmutable<Tx>* x, Xiter<int>* i, Xiter<Tx>* y) { x->amend(*i,*y); }
+_TX void amend(Xmutable<Tx>* x, Xrange i, Tx y) { for(int j=i.start; j<i.end; j++) x->amend(j, y); }
+_TX void amend(Xmutable<Tx>* x, Xrange& i, Tx y) { for(int j=i.start; j<i.end; j++) x->amend(j, y); }
+_TX void amend(Xmutable<Tx>* x, Xrange* i, Tx y) { for(int j=i->start; j<i->end; j++) x->amend(j, y); }
 _TX int insert(Xmutable<Tx>& x,Tx y){return x.insert(y);}
 _TX int insert(Xmutable<Tx>* x,Tx y){return x->insert(y);}
 _TX void fill(Xmutable<Tx>& x,Tx y){
@@ -531,6 +534,23 @@ void test_xtree() {
 	auto p2=xt.leaves(); _test("xtree6",len(p2),2); _test("xtree7",p2[0],2); _test("xtree8",p2[1],3);
 }
 
+struct Xitem {
+	char type;
+	Xany* ptr;
+};
+bool operator==(Xitem x,Xitem y) {
+	if(x.type!=y.type) return false;
+	if(x.ptr!=y.ptr) return false;
+	return true;
+}
+std::ostream& operator<<(std::ostream &os,Xitem x) { 
+	os<<"item(";
+	os<<x.type;
+	os<<":";
+	os<<(*x.ptr); 
+	os<<")";
+	return os; }
+
 void test_genfn() {
 	emit("test(genfn)");
 	Xsym v_ss("imasym");
@@ -564,6 +584,8 @@ void parse(){
 	Xstr base(1); insert(base,' ');
 	auto charmap=take(base,256);
 	emit(charmap);
+	amend(charmap,Xrange(65,91),'l');
+	amend(charmap,Xrange(97,123),'l');
 	char nums[]="0123456789"; Xstr num(strlen(nums),nums);
 	emit(num);
 	amend(charmap,num,'n');
@@ -572,30 +594,110 @@ void parse(){
 	emit(op);
 	amend(charmap,op,'o');
 	emit(charmap,"op");
-	char dels[]="{}()[]'\""; Xstr del(strlen(dels),dels);
-	emit(dels);
-	amend(charmap,del,'{');
+	char gr_ops[]="{(["; Xstr gr_op(strlen(gr_ops),gr_ops);
+	emit(gr_op);
+	amend(charmap,gr_op,'{');
+	char gr_cls[]="})]"; Xstr gr_cl(strlen(gr_cls),gr_cls);
+	emit(gr_cls);
+	amend(charmap,gr_cl,'}');
+	char gr_qs[]="'\"`"; Xstr gr_q(strlen(gr_qs),gr_qs);
+	emit(gr_qs);
+	amend(charmap,gr_q,'\"');
 	emit(charmap,"final");
-	char code[]="{1+23}";
+	char code[]="{1+(23) is 'xy'}";
 	Xstr s(strlen(code),code);
 	emit(s);
 	auto r=each(s, charmap);
 	emit(r);
 
+	auto tree=Xtree<Xitem>(len(r));
+	int curParent=0;
+	Xitem curItem={'_',nullptr};
+	for(int i=0; i<len(r)-1; i++) {
+		/*
+		if(r[i]=='{') {
+			curParent = i;
+			curItem.type='{';
+			curItem.ptr=nullptr;
+		}
+		if(r[i]=='}') {
+			curParent=tree.parent(curParent);
+			curItem.type='}';
+			curItem.ptr=nullptr;
+		}
+		*/
+		tree.insert(curParent,curItem);
+	}
+	// cleanup..
+
 	/*
-	 * x="abcdef"
-	 *
+	 {1+23 is 'xy'}	
+	 vec(14,({,n,o,n,n, ,l,l, ,",l,l,",}))
+
+	 vec(16,({,1,+,(,2,3,), ,i,s, ,',x,y,',}))
+
+	 vec(16,({,n,o,{,n,n,}, ,l,l, ,",l,l,",}))
+
+	 group {
+
+		 number 1
+		 operator + (or verb)
+		 number 23
+		 space 
+		 literal is
+		 space
+		 quote
+		 literal xy
+		 quote
+		 end group
+
+	 
 	 */
 }
 int main() {
-	test();
-	//parse();
+	//test();
+	parse();
 	emit("exiting");
 	return 0;
 }
 
 /*
- 
+
+
+	what about "is" as the "put" signal
+	and "@" as the "get" signal
+	and building everything around that
+
+	we would need some way of indicating "modify index", like a subset.
+
+	the diff between amend and put is that put always returns the x value,
+	but amend if its a put to another process cant return anything - maybe
+	just return the same thing? hmm.
+
+	i.e., "10 is `x`" vs "10,20 ! (0,30) expect (30,20)"
+
+	if using WA, link those methods to the JS runtime
+
+	also need "len"
+	with that we can do: 
+
+		"insert" (as ",")
+		find
+		where
+		take/drop o'course
+		all the looping
+
+	what about a global "X" variable
+	and each source code symbol is a function that works against it 
+	where does Y come in
+
+	perhaps Y is only because of a projection.. can projections be used to find the right types also? is there a homoiconicity there
+
+	need a symbol for emit
+
+	xxx need projection type
+	xxx need error type
+
  xxx single item value xsingle<int>
  xxx ponder delete behavior visavis xlist
  xxx dict tag <- ??
@@ -613,3 +715,4 @@ int main() {
 
 
 */
+

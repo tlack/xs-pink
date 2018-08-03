@@ -17,7 +17,7 @@ Just notes and scraps of code. Not usable or near complete.
 
 ## Design goals
 
-* Target embedded systems, written in barbarian C++
+* Target embedded systems, written in barbarian C++. Does not use STL.
 * Strictly left to right with no precedence.
 * `.` ends the line.
 * All values are vectors. A scalar is just a vector(1).
