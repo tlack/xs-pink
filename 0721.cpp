@@ -663,6 +663,17 @@ int main() {
 
 /*
 
+	what about "::" as combination (static/parse-tree-level) type annotation and "cast":
+
+		"ints.bin" open take 4 :: Int
+
+	we could define Int as "int" or w/e to avoid magic
+
+	--
+
+	perhaps "def" instead of "is"?
+
+	--
 
 	what about "is" as the "put" signal
 	and "@" as the "get" signal
@@ -676,7 +687,9 @@ int main() {
 
 	i.e., "10 is `x`" vs "10,20 ! (0,30) expect (30,20)"
 
-	if using WA, link those methods to the JS runtime
+	(if using WA, link those methods to the JS runtime)
+
+	--
 
 	also need "len"
 	with that we can do: 
@@ -698,21 +711,17 @@ int main() {
 	xxx need projection type
 	xxx need error type
 
- xxx single item value xsingle<int>
- xxx ponder delete behavior visavis xlist
- xxx dict tag <- ??
+	xxx single item value xsingle<int> DONE
+	xxx ponder delete behavior visavis xlist
+	xxx dict tag <- ??
 
- types of functions:
- atomic: +, *, ..
- scalar: sum, count, ..
- generative: open, read, ..     // .. all others
+	types of functions:
+	atomic: +, *, ..
+	scalar: sum, count, ..
+	generative: open, read, ..     // .. all others
 
-	
 	"0123456789"->"nums".
 	"1+2" state (nums:"n",
-	
-	xxx 
-
 
 */
 
