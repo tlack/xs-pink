@@ -511,13 +511,36 @@ _TX class Xtree : public Xany {
 	};
 	int adopt(const int parent, const int child) { parents[child]=parent; return child; };
 	int adopt(const int parent, Xvec<int>& children) { for(int i=0;i<children.len();i++) parents[children[i]]=parent; return parent; };
+	void deep(const int parent, void (*f)(Xtree* x, const int child), bool recurse) {
+		for (int i=0; i<last; i++) {
+			if(parents[i]==parent) { f(this,i); if (recurse) deep(i, f, recurse); }
+		}
+	}
 	Tx get(int i) { return data[i]; }
 	int insert(const int parent, Tx data_) { int i=data.insert(data_); parents.insert(parent); last=i+1; return i; }
 	Xvec<int> leaves() { return except(til(last), parents); }
 	int len() { return parents.len(); }
 	Xvec<int> path(const int child) { return recurse(parents, child); };
 	int parent(const int child) { return parents[child]; }
+	int pred(const int child) {
+		// previous child key, of the siblings of this child (i.e., same parent)
+		// returns self if first child
+		int thispar=parents[child],lastkey=child;
+		for(int i=0;i<child;i++) {
+			if(parent[i]==thispar) lastkey=i;
+		}
+		return lastkey;
+	}
 	void repr(OS& o) { o<<"tree("; for(int i=0;i<last;i++) { o<<i<<":"<<get(i); if(i<last-1)o<<",";} o<<")"; }
+	int succ(const int child) {
+		// next child key, of the siblings of this child (i.e., same parent)
+		// returns self if first child
+		int thispar=parents[child],lastkey=child;
+		for(int i=child+1;i<last;i++) {
+			if(parent[i]==thispar) return i;
+		}
+		return child;
+	}
 };
 _TX int insert(Xtree<Tx>& x, int i, Tx d) { return x.insert(i,d); }
 _TX int insert(Xtree<Tx>* x, int i, Tx d) { return x->insert(i,d); }
@@ -626,6 +649,7 @@ void parse(){
 			curItem.ptr=nullptr;
 		}
 		*/
+		
 		tree.insert(curParent,curItem);
 	}
 	// cleanup..
