@@ -1,0 +1,39 @@
+
+Types:
+
+Say up to 127 types
+Named at creation
+Neg t = scalar
+
+Operators:
+
+Fundamental functions?
+
+Continuous parse transforms on head?
+
+
+Memory layout:
+
+(Wasm provides one continguous block of memory byte addressible)
+
+Here "int" means we're addressing it as 32 bit ints
+
+Int 0 - Not sure
+
+Int 1..769 - Typedefs? (Fixed amt)
+
+	[ 
+		[ Sym "list", Sym "int", Sym "char", .. ],                           1..513
+		[ List dispatch ptr, int dispatch ptr, char dispatch ptr.. ]         514..768
+	]
+
+	Total size for 64 types: (64*8 512)+(64*4 256)=512+256=768
+
+Int ??? - Dispatch for type "list"
+
+	[
+
+
+
+	]
+
