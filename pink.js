@@ -2,15 +2,23 @@
 // pink in javascript
 // 
 
+// TODO allow modifying:
+// - lexer
+// - lexer->parser (resolver)
+// - "makers" ("handlers")?
+//
 require('./xact.js')(global);
+let fs=require('fs');
 
-MAKERS['err']=function(val) { return make(val,'$err'); }
 MAKERS['f1']=function(f){return function(x,ctx){
 	if(ctx && ctx._state) ctx._state.x=x; 
 	return f(x,ctx)}};
 MAKERS['f2']=function(f){return function(x,ctx){return function(y,ctx) { 
 	if (ctx && ctx._state) { ctx._state.x=x;ctx._state.y=y; }
 	return f(x,y,ctx); }}} // ???
+MAKERS['$file']=function(fn){
+	if(!fs.existsSync(fn)) return make(make(fn,'$filenotfound'),'$err'); 
+	return ['$file',fn];}
 
 function invoke(litname, left, ctx) {
 	noemit([litname,left],'invoke');
@@ -31,14 +39,15 @@ function interp(x, ctx, left) {
 		noemit(i);
 		if($sym(left)=='$err') return left;
 		xi=x[i]; sy=$sym(xi); data=xi[1];
-		noemit(x[i],'interp '+i); noemit(left,'interp left '+i); noemit(sy); noemit(data);
+		emit([x[i],left],'interp x['+i+']/left'); 
+		//noemit(left,'interp left '+i); noemit(sy); noemit(data);
 		if(sy=='$ws') continue;
 		if(sy=='$lit') {
 			//var val=get(ctx, d);
 			//var val=ctx[d]; noemit(val,'eval get'); 
-			//emit('interp-branch-c');
+			emit('interp-branch-c');
 			left=invoke(data, left, ctx); 
-			//emit(left,'invoke result');
+			emit(left,'invoke result');
 			if($sym(left)=='err')
 				return left;
 			continue;
@@ -85,6 +94,7 @@ function type(x) {
 		var r=merge(take(x,3),take(x,-3));
 		if(test_array(r,'number')) return '$num';
 		if(test_array(r,'string')) return '$str';
+		return 'array'; //i see more difficult general list handling in my near future
 	}
 	var u=t(x);
 	if(u=='int') return '$num';
@@ -96,6 +106,11 @@ var BASE={};
 BASE['_state']={};
 BASE[',']=make(ins,'f2');
 BASE[';']=function(){return undefined;};
+/*
+BASE['amend']=make(function(left,right,ctx) {
+	if(len(right)!=2) return make(make('amend','y should be ( (1,2,3),(')
+},'f2');
+*/
 BASE['each']=make(function(left,right,ctx) {
 	noemit([left,right],'each');
 	if(!tarray(left)) left=[left];
@@ -121,6 +136,8 @@ BASE['is']=make(function(left,right,ctx) {
 			if($sym(right)!='$str') return noemit(ctx[right]=left,'str');
 			return make('err',['is',[left,right]]); },'f2');
 BASE['len']=make(len,'f1');
+BASE['make']=make(function(x,y){return make(x,y[0]!='$'?'$'+y:y);},'f2');
+BASE['$file:load']=make(function(x){return fs.readFileSync(x[1],'utf8');},'f1');
 BASE['parse']=make(parse,'f1');
 BASE['take']=make(take,'f2');
 BASE['til']=make(til,'f1');
@@ -170,6 +187,9 @@ function code_tests() {
 	c="1+1"; r=attempt(c); assert(r[0],[2],'code14');
 	c="1,2+(3,4)"; r=attempt(c); assert(r[0],[4,6],'code15');
 	c="(1,2)+(3,4)"; r=attempt(c); assert(r[0],[4,6],'code16');
+	//c="'hello' is 'a' ; 'goodbye' is 'b' ; a + b"; r=attempt(c); emit(r);
+	c="'README.md' is 'fn'; fn make '$file' is 'handle'; handle load"; r=attempt(c); 
+	assert(/pink/.test(r[0]),true,'code17');
 	emit('code tests passed!');
 }
 
@@ -192,7 +212,7 @@ function repl(n) {
 	const rl=require('readline').createInterface({input:process.stdin,output:process.stdout});
 	n=tU(n)?-1:n;
 	let C=context();
-	emit("\n\n\n\nwelcome to Pink\n\n");
+	emit("\n\nwelcome to Pink\nuse \\\\ to exit\n\n");
 	repl0();
 }
 
