@@ -68,6 +68,7 @@ function parse(c) {
 	noemit(cc);
 	ccc=nest(cc,"'","'",function(v){return ['$str',v.join('')]});
 	ccd=resolve(ccc, [ 
+		/;/, function(x){return [make(' ','$ws'),make(';','$lit')]},
 		/^[0-9.]+$/, function(x){noemit(x,'making number'); return make(Number(x),'$n');},
 		/^\s+$/, function(x){return make(x,'$ws');},
 		/^[A-Za-z0-9!@#%^&*=<>,.\/?;:'`_+-]+$/, function(x){return make(x,'$lit'); }
@@ -190,6 +191,7 @@ function code_tests() {
 	//c="'hello' is 'a' ; 'goodbye' is 'b' ; a + b"; r=attempt(c); emit(r);
 	c="'README.md' is 'fn'; fn make '$file' is 'handle'; handle load"; r=attempt(c); 
 	assert(/pink/.test(r[0]),true,'code17');
+	c="2 is b;b";r=attempt(c);assert(r[0],2,'code18'); // fix for semicolon in middle of line
 	emit('code tests passed!');
 }
 
@@ -201,7 +203,7 @@ function repl(n) {
 			x=x.trim();
 			if(x=='') return repl0();
 			if(x=='\\\\') process.exit(1);
-			var p=parse(x);
+			var p=parse(x,C);
 			emit(je(p),'parsetree');
 			var i=interp(p,C);
 			emit(i,'result');
