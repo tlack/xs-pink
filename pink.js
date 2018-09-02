@@ -9,15 +9,17 @@
 //
 // need a good way to fmt any value (ughhh)
 
+PX={};
 if(typeof(require)!='undefined') {
-	require('./xact.js')(global);
+	require('./xact.js')(PX);
 	var fs=require('fs'); }
-
+PX.amend(global, PX.key(PX), PX.value(PX));
 function assign(left,right,ctx) {
 	emit([left,right,ctx],'assigning..');
 	if(!tstr(right)) return make(['y is non-string','nyi'],'$err');
 	if (tstr(right)) { ctx[right]=left; return left; }
 	return make(make('assign y must be string','$nyi'),'$err'); }
+PX.assign=assign;
 function arity(parsetree) {
 	emit(je(parsetree),'arity ptree');
 	if($sym(parsetree)=='$parsetree') parsetree=$data(parsetree);
@@ -26,74 +28,106 @@ function arity(parsetree) {
 	emit([m,LY],'arityy');
 	return LY > 0 ? 2 : 1;
 }
+PX.arity=arity;
+function call(x, y, ctx) {
+	emit(x,'call() x');
+	emit(y,'call() y');
+	if(tfunc(x)) return x(y,ctx);
+	let sx=$sym(x),dx=$data(x);
+	emit(sx);emit(dx);
+	if(sx=='$f1') { return dx(y,ctx); } 
+	//else if (sx=='$f2') { return make([f,y],'$p2'); }
+	else if (sx=='$p1') { let f=dx[0]; return f(y,ctx); }
+	else if (sx=='$p2') { let f=dx[0]; return f(dx[1],y,ctx); }
+	return make_err(call,'type','x argument not understood');
+} PX.call=call;
+function tcallable(x) {
+	let t=type(x), ok='func $f1 $f2 $p1 $p2'.split(/ /);
+	return ok.includes(t);
+} PX.tcallable=tcallable;
 function lookup(litname, left, ctx) {
-	let val;
-	emit(litname,'lookup() name');
-	//emit(je(ctx),'lookup() ctx');
-	//emit(je(left),'lookup() left');
+	let val=undefined;
 	if(!tU(left)) val=ctx[type(left)+' ## '+litname];
-	val=val||ctx[litname];
+	val=tU(val) ? ctx[litname] : val;
 	if(tU(val)) return make(make(litname,'$notfound'),'$err');
-	if(0 && tfunc(val)) { 
-		emit(val.toString(),'tfunc');
-		emit(je(left),'tf left'); 
-		if(!tU(left)) {
-			val=val(left, ctx); 
-			emit(je(val),'lookupd result');
-		} }
-	emit(val,'lookup('+litname+') returning');
 	return val; }
-var INTERP_N=0;
+PX.lookup=lookup;
+var INTERP_N=0; 
 function interp0(x, ctx, left, right) {
 	var interp_n=INTERP_N++;
 	if(len(x)==1 && tarray(x[0])) return interp0(x[0], ctx, left, right);
-	emit(je(x),'interp #'+interp_n+' entering with code');
-	emit(je(left),'interp #'+interp_n+' entering with left');
-	emit(je(right),'interp #'+interp_n+' entering with right');
-	emit(je(ctx),'interp #'+interp_n+' entering with ctx');
+	//emit(je(x),'interp #'+interp_n+' entering with code');
+	//emit(je(left),'interp #'+interp_n+' entering with left');
+	//emit(je(right),'interp #'+interp_n+' entering with right');
+	//emit(je(ctx),'interp #'+interp_n+' entering with ctx');
 	//emit(ctx,'and data');
-	var xn=len(x),i,xi,sy,data,val;
-	ctx._state.x=left;
-	ctx._state.y=right;
+	let xn=len(x),i,xi,sy,data,val;
+	let _state={};
+	_state.x=left;
+	_state.y=right;
+	emit(_state.x,'interp0 state.x');
 	left=undefined;
 	for(i=0;i<xn;i++){
 		if($sym(left)=='$err') return left;
 		xi=x[i]; sy=$sym(xi); data=$data(xi);
-		emit([je(xi),left],'interp x['+i+']/left'); 
+		//emit([je(xi),left],'interp x['+i+']/left'); 
+		emit(xi,'interp() #'+interp_n+' loop '+i);
 		val=left;
+		$from_expr=0;
 		if(sy=='$ws') continue;
 		else if(sy=='$lit') {
 			if (data=='y') {
-				emit(ctx,'ctx at time of y reference');
-				val=emit(ctx._state.y,'replacement for "y"');
+				//emit(ctx,'ctx at time of y reference');
+				val=emit(_state.y,'replacement for "y"');
 			} else if (data=='x') {
-				emit(ctx,'ctx at time of x reference');
-				val=emit(ctx._state.x,'replacement for "x"');
+				//emit(ctx,'ctx at time of x reference');
+				val=emit(_state.x,'replacement for "x"');
 			} else {
 				val=lookup(data, left, ctx); 
-				emit(val,'interp lit result for "'+data+'"');
+				//emit(val,'interp lit result for "'+data+'"');
 				if($sym(val)=='err') return val; }
 		}
-		else if(sy=='$str'||sy=='$n') { emit('interp value'); val=data; }
-		else if(sy=='$expr') { emit('interp expr'); val=interp0(data, ctx, ctx._state.x, ctx._state.y); noemit(val,'result'); }
-		else if(tarray(xi) && !sy) { emit('interp recursing'); val=interp0(xi,ctx,ctx._state.x,ctx._state.y); }
+		else if(sy=='$str'||sy=='$n') { emit('interp n/str value'); val=data; }
+		else if(sy=='$expr') { noemit('interp expr'); val=interp0(data, ctx, _state.x, _state.y); $from_expr=1; noemit(val,'result'); }
+		else if(tarray(xi) && !sy) { noemit('interp recursing'); val=interp0(xi,ctx,_state.x,_state.y); }
 		//emit([left?left.toString():'(U)',val?val.toString():'(U)'],'intr');
-		if(!tU(val)) {
+		if(1) { //||!tU(val)) {
+			emit(val,'v');
+			if($from_expr || !tcallable(val)) {
+				if(tcallable(left)) val=emit(call(left, val, ctx),'interp left() result');
+			} else {
+				if(!tU(left)) val=emit(call(val, left, ctx),'interp val() result');
+			}
+			/*
+			if(tcallable(val) && !tU(left) && !tcallable(left)) {
+				emit('calling val');
+				val=call(val,left,ctx);
+			} 
+			else 
+			if (tcallable(left)) { 
+				emit('calling left');
+				val=call(left,val,ctx);
+			}
+			*/
+			/*
 			if ($sym(left)=='$p2') {
-				emit(left,'invoking projection..');
+				//emit(left,'invoking projection..');
+				emit('interp invoking projection');
 				let proj=$data(left), fn=proj[0];
 				val=fn(proj[1],val,ctx); } 
 			else if (tfunc(val) && !tU(left)) { emit('interp invoking val'); val=val(left,ctx); } 
 			else if (tfunc(left)) { emit('interp invoking default left'); val=left(val,ctx); }
-			emit(je(val),'interp lookup !tU(val) result'); 
+			*/
+			emit(val,'interp lookup !tU(val) result'); 
 		}
-		left=emit(val,'interpo #'+interp_n+' x['+i+']/final left'); 
+		left=emit(val,'interp #'+interp_n+' x['+i+']/final left'); 
 	}
-	emit(je(left),'interp #'+interp_n+' returning');
+	noemit(je(left),'interp #'+interp_n+' returning');
 	return left; }
 function interp(x, ctx, left, right) {
 	if($sym(x)!='$parsetree') return make(make('x should be parse tree','$param'),'$err');
 	if(!tdict(ctx)) return make('interp(): bad ctx','$err');
+	emit(x,'interp()');
 	x=$data(x);
 	let arity=x[1];
 	x=x[0]; 
@@ -104,6 +138,7 @@ function interp(x, ctx, left, right) {
 	let r=interp0(x, ctx, left, right);
 	return r; }
 	//return tfunc(r)&&!tU(right)?r(right):r; }
+PX.interp=interp;
 function parse(c) {
 	cc=c.split('');
 	ccc=nest(cc,"'","'",function(v){return make(v.join(''),'$str')});
@@ -116,7 +151,7 @@ function parse(c) {
 	]);
 	ccf=wide(ccd, function(x, last_, path) {
 		x=alike(x, function(x,y) {
-			if($sym(x)=='$n') return make(emit($data(x)*10+$data(y),'alike-n'),'$n');
+			if($sym(x)=='$n') return make($data(x)*10+$data(y),'$n');
 			if($sym(x)=='$lit') return make($data(x)+$data(y),'$lit'); 
 			/* no return = undefined = skip */ });
 		return x; });
@@ -124,9 +159,11 @@ function parse(c) {
 	//emit(je(ccg),'parse result');
 	return make([ccg,arity(ccg)],'$parsetree');
 }
+PX.parse=parse;
 function trigger(x,y,ctx) {
 	ctx._triggers[y]=x;
 }
+PX.trigger=trigger;
 function type(x) {
 	function test_array(x, type) { return x.every(function(y) { return typeof(y)==type; }); }
 	if(tsym(x)) return $sym(x);
@@ -141,7 +178,7 @@ function type(x) {
 	if(u=='string') return '$str';
 	return u;
 }
-
+PX.type=type;
 function compile(code) {
 	// Returns a function like f(x, ctx) that will do interp(code,ctx,x);
 	emit(code,'compile()');
@@ -149,64 +186,84 @@ function compile(code) {
 	let ptree=parse(code);
 	//let a=arity(ptree);
 	//emit(a,'_###_#_#__##_ ARITY');
-	emit(je(ptree),'compile() parse tree');
-	if($data(ptree)[1]==2) {
-		emit('compile(): making arity 2 func');
-		return function(left, right, ctx) {
-			emit([je(left),je(right),je(ctx)],'compile2 - inner');
+	//emit(je(ptree),'compile() parse tree');
+	if($data(ptree)[1]==2) { //emit('compile(): making arity 2 func');
+		return function compiled_inner_2(left, right, ctx) {
+			//emit([je(left),je(right),je(ctx)],'compile2 - inner');
 			return interp(ptree, ctx, left, right); }
-	} else {
-		emit('compile(): making arity 1 func');
-		return function(left, ctx){
-			emit([je(left),je(ctx)],'compile1 - inner');
-			emit(je(ctx),'compile - inner ctx');
+	} else { // emit('compile(): making arity 1 func');
+		return function compile_inner_1(left, ctx){
+			//emit([je(left),je(ctx)],'compile1 - inner');
+			//emit(je(ctx),'compile - inner ctx');
 			return interp(ptree, ctx, left); }
 	}
 }
+PX.compile=compile;
 function make_err($func_name, $type, $val) {
 	return make([$func_name, $type, $val],'$err');
 }
+PX.make_err=make_err;
 function make_parsing_y_func(callback, inner_func_type) {
-	emit(inner_func_type,'make_parsing_y_func');
-
+	//emit(inner_func_type,'make_parsing_y_func');
 	if(inner_func_type=='$f2') 
-		return make(function(x, y, ctx) {
+		return make(function parsed_f2_outer(x, y, ctx) {
 			var y_compiled = !tfunc(y) ? compile(y) : y;
 			if($sym(y_compiled)=='$err') return y_compiled;
-			function helper2(xx, yy, idx) { emit([xx,yy],'make_parsing_y_func helper/2'); return y_compiled(xx,yy,ctx); }
-			return callback(x, helper2);
+			function parse_helper2(xx, yy, idx) { emit([xx,yy],'make_parsing_y_func helper/2'); return y_compiled(xx,yy,ctx); }
+			return callback(x, parse_helper2);
 		},'$f2');
-	
-	return make(function(x, y, ctx) {
+	return make(function parsed_f1_outer(x, y, ctx) {
 		var y_compiled = !tfunc(y) ? compile(y) : y;
 		if($sym(y_compiled)=='$err') return y_compiled;
-		function helper(xx, idx) { emit(xx,'make_parsing_y_func helper/1'); return y_compiled(xx, ctx); }
-		return callback(x, helper);
+		function parse_helper(xx, idx) { emit(xx,'make_parsing_y_func helper/1'); return y_compiled(xx, ctx); }
+		return callback(x, parse_helper);
 	},'$f2');
 }
-
-function loadtext(fn) {return fs.readFileSync(tsym(fn)?$data(fn):fn,'utf8')}
+function importas(fn,type,ctx) {
+	if(!tstr(type)) return make_err('importas','type','y should be symbol');
+	if(/\.js$/.test(fn)) {
+		if(tU(require)) return make_err('importas','sys','cant find require'); //browser
+		var o=require(fn);
+		if(!tfunc(o)) return make_err('importas','value','require didnt return load function');
+		o=o(type,ctx);
+		if(!tdict(o)) return make_err('importas','value','load fuction returned non-dict');
+		each(o,function(v,k) { 
+			if(k=='make')ctx[type] = function(x,y) { make(v(x,y),type); };
+			else ctx[type+' ## '+k]=v; 
+		});
+		return true;
+	}
+	return make_err('importas','nyi','');
+}
 function loadjs(fn) {return require(tsym(fn)?$data(fn):fn)}
+function loadpink(fn,ctx) {
+	const txt=loadtext(fn);
+	const p=parse(txt);
+	return interp(p,ctx,fn);
+}
+function loadtext(fn) {return fs.readFileSync(tsym(fn)?$data(fn):fn,'utf8')}
 var BASE=MAKERS={};
 BASE['_base']=1;
 BASE['_state']={};
 BASE['_triggers']={};
 // TODO make a penetrative-math-operator function thing
-BASE['$f1']=function(f){return function(x,ctx){
-	if(ctx) { ctx._state.x=x; ctx._state.y=undefined; emit(je(ctx),'f1 new ctx'); }
+BASE['$f1']=function f1(f){return function f1outer(x,ctx){
+	//if(ctx) { ctx._state.x=x; ctx._state.y=undefined; }
 	return f(x,ctx) }};
-BASE['$f2']=function(f){return function(x,y,ctx){
-	emit([je(x),je(y)],'$f2()');
+BASE['$f2']=function f2(f){return function f2outer(x,y,ctx){
+	//emit([je(x),je(y),je(ctx)],'$f2()');
 	if(!tU(x)&&!tU(y)&&!tU(ctx)) return f(x,y,ctx);
-	emit(je(x),'$f2() - returning projection..'); 
-	emit(ctx,'$f2() - projection ctx'); 
+	//emit(je(x),'$f2() - returning projection..'); 
+	//emit(ctx,'$f2() - projection ctx'); 
 	return make([f,x],'$p2'); }}
-BASE['$p1']=function(func) { return {'$p1':[func,undefined]}; }
-BASE['$p2']=function(args) {
+BASE['$p1']=function p1(func) { if(!tfunc(func)) return make_err('$p1','type'); return {'$p1':[func,undefined]}; }
+BASE['$p2']=function p2(args) {
 	if(!tarray(args) || len(args)!=2) return make_err('$p2','type','arg should be [func,x_arg]');
 	if(!tfunc(args[0])) return make_err('$p2','type','arg[0] should be function');
+	//emit(args,'p2');
 	return {'$p2':args}; }
 BASE['$str ## +']=make(function(x,y){emit([x,y],'strplus!');return x+y},'$f2');
+BASE['amend']=make(amend,'$f2');
 BASE['arity']=make(arity,'$f1');
 BASE['compile']=make(compile,'$f1');
 /*
@@ -231,40 +288,46 @@ BASE['eachleft']=make(function(x,func,ctx) {
 */
 BASE['eachleft']=make_parsing_y_func(eachleft,'$f2');
 BASE['eachright']=make_parsing_y_func(eachright,'$f2');
-BASE['+']=make(function(x,y){
+BASE['+']=make(function adder(x,y){
 	emit([x,y],'++ ADD ++');
 	if(typeof(x)=='number'&&typeof(y)=='number') return x+y;
 	if(len(x)==1) x=take(x,len(y)); 
 	return eachboth([x,y],function(x,y){emit([x,y],'+e');return x+y})},'$f2');
 BASE['emit']=make(projright(emit,'>> FROM CODELAND'),'$f1');
 BASE['get']=make(get,'$f2');
+BASE['importas']=make(importas,'$f2');
 BASE['interp']=interp;
 BASE['lookup']=lookup;
 BASE['is']=make(assign,'$f2');
 BASE['as']=make(function(x,y,ctx){return assign(y,x,ctx)},'$f2');
 BASE['len']=make(len,'$f1');
+BASE['key']=make(key,'$f1');
 BASE['make']=make(function(x,y){return make(x,y[0]!='$'?'$'+y:y);},'$f2');
 BASE['$textfile']=function(fn){
 	if(!fs.existsSync(fn)) return make(make(fn,'$filenotfound'),'$err'); 
 	return {'$textfile':fn};}
 //BASE['$textfile ## load']=make(function(x){return fs.readFileSync($data(x),'utf8');},'$f1');
-BASE['$textfile ## load']=make(loadtext,'$f1');
 BASE['$jsfile ## load']=make(loadjs,'$f1');
+BASE['$pinkfile ## load']=make(loadpink,'$f1');
+BASE['$textfile ## load']=make(loadtext,'$f1');
+BASE['load']=make(function(x,ctx){return make_err('load','arg','unsure about how to load '+x);},'$f1');
 BASE['over']=make(over,'$f2');
 BASE['parse']=make(parse,'$f1');
 BASE['scan']=make(over,'$f2');
+BASE['swapyx']=make(function(x,y,ctx){return call(y,x,ctx);},'$f2');
 BASE['take']=make(take,'$f2');
 BASE['til']=make(til,'$f1');
 BASE['trigger']=make(trigger,'$f2');
 BASE['type']=make(type,'$f1');
 // SHORT HAND:
+BASE['@']=BASE['get'];
 BASE['??']=BASE['emit'];
 BASE['->']=BASE['is'];
 BASE['<-']=BASE['as'];
 BASE['##']=BASE['make'];
 BASE[',']=make(ins,'$f2');
 BASE['::']=make(merge,'$f2');
-BASE[';']=function(x) { emit(je(x),';'); return undefined; }
+BASE[';']=make(function(x){return undefined; },'$f1');
 
 function context() { var o=Object.assign({},BASE); return emit(o,'new context()'); }
 function attempt(code,C) {
@@ -277,7 +340,6 @@ function code_tests() {
 	//parsetest("(1,2,345) is 'blah'")
 	var c, r;
 	emit('begin code tests');
-	//NOEMIT=1;
 	c="1"; r=attempt(c); assert(r[0],1,'codeA');
 	c="(1)"; r=attempt(c); assert(r[0],1,'codeA');
 	c="11"; r=attempt(c); assert(r[0],11,'codeAA');
@@ -287,6 +349,7 @@ function code_tests() {
 	// c=";1"; r=attempt(c); assert(r[0],1,'code;0'); XXX BIG BUG - starting with ";" breaks
 	c="0;1"; r=attempt(c); assert(r[0],1,'code;1');
 	c="2 is 'z'"; r=attempt(c);
+	assert(r[0],2,'code00');
 	assert(r,{'z':2},'code0');
 	c="z"; r=attempt(c,r[1]);
 	assert(r[0],2,'code0b');
@@ -335,7 +398,7 @@ function code_tests() {
 	c="2 is 'b';b";r=attempt(c);assert(r[0],2,'code18'); // fix for semicolon in middle of line
 	//c="'emit 666;x*2' is '$mytype'; 10 make 'mytype'";r=attempt(c);
 	c="2,3 type";r=attempt(c);assert(r[0],'$num','code19');
-	c="'666' compile is 'myfunc'; 100 myfunc";r=attempt(c);assert(r[0],666,'compile 0');
+	c="('666' compile) is 'myfunc'; 100 myfunc";r=attempt(c);assert(r[0],666,'compile 0');
 
 	c="'x + 2' compile 777";r=attempt(c);assert(r[0],779,'compile 1!!');
 
@@ -346,10 +409,13 @@ function code_tests() {
 	c="('x + 2' compile) is 'myfun'; 1,2,3 each 'x myfun'";r=attempt(c);
 	assert(r[0],[3,4,5],'compile 3');
 
-	//c="('2 + x' compile) is 'myfun'; 1,2,3 each 'myfun'";r=attempt(c);assert(r[0],[3,4,5],'compile 3b');
+	c="('2 + x' compile) is 'myfun'; 1,2,3 each 'x myfun'";r=attempt(c);assert(r[0],[3,4,5],'compile 3b');
 
-	c="1,2,3 each ('2 + x' compile)";r=attempt(c);
-	assert(r[0],[3,4,5],'compile 4');
+	c="7,8,9 each ('10 + x' compile)";r=attempt(c);
+	assert(r[0],[17,18,19],'compile 4');
+
+	c="7 each ('10 + x' compile)";r=attempt(c);
+	assert(r[0],[17],'compile 4b');
 
 	c="'x + 1' parse arity";r=attempt(c);assert(r[0],1,'arity 0');
 	c="'(x) + 1' parse arity";r=attempt(c);assert(r[0],1,'arity 1');
@@ -359,12 +425,14 @@ function code_tests() {
 	c="(1,2)::5 eachleft '(x) + y'"     ;r=attempt(c);assert(r[0],[6,7],'code each left pre-a');
 	c="(1,2)::5 eachleft '(x) + (y)'"   ;r=attempt(c);assert(r[0],[6,7],'code each left pre-b');
 	c="(1,2)::5 eachleft 'x + (y)'"     ;r=attempt(c);assert(r[0],[6,7],'code each left pre-c');
-	c="(1,2)::5 eachleft +"             ;r=attempt(c);assert(r[0],[6,7],'code each left pre raw');
+	c="(1,2)::5 eachleft 'x + (y + 1)'" ;r=attempt(c);assert(r[0],[7,8],'code each left pre-c');
+	c="(1,2)::5 eachleft (+)"           ;r=attempt(c);assert(r[0],[6,7],'code each left pre raw');
 	c="(22,5,8)::10 eachleft 'x + y'"   ;r=attempt(c);assert(r[0],[32,15,18],'code each left');
 	c="(5),(7,8,9) eachright 'x + y'"   ;r=attempt(c);assert(r[0],[12,13,14],'code each right');
 	c="(1,2,3),(7,8,9) eachboth 'x + y'";r=attempt(c);assert(r[0],[8,10,12],'code each both');
 	c="'./test_xact.js' ## '$jsfile' load"; r=attempt(c);assert(r[0],999,'code jsfile load');
 	c="'./xact.js' ## '$jsfile' load "; r=attempt(c); emit(r);
+	c="5,6 each 'x + 2;x + 3'";r=attempt(c);assert(r[0],[8,9],'code each dupe x');
 	emit('code tests passed!');
 }
 
@@ -395,9 +463,13 @@ function repl(n) {
 function main() {
 	//parsetest("(1,2,345) is 'blah'")
 	//
-	code_tests();
-	repl();
+	if(len(process.argv)<3) {
+		code_tests();
+		repl();
+	}
+	else loadpink(process.argv[2],context());
 }
 
-main();
+module.exports=PX;
+if(require.main==module) main();
 

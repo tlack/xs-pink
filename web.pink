@@ -1,0 +1,15 @@
+'PORT' <- 8888;
+
+'web.pink loading..' emit;
+
+'./pink_lib_web.js' importas '$web';
+
+'"Your URL = ",(x @ 0 @ "url")' -> 'router_fn';
+
+router_fn :: PORT ## '$web' -> 'webserver';
+
+webserver load;
+
+'web.pink web server loaded on ', PORT emit;
+
+
