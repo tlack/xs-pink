@@ -141,8 +141,10 @@ function interp(x, ctx, left, right) {
 PX.interp=interp;
 function parse(c) {
 	cc=c.split('');
+	//ccc=nest(cc,'"""','"""',function(v){return make(v.join(''),'$str')});
+	//ccc=nest(cc,"'''","'''",function(v){return make(v.join(''),'$str')});
 	ccc=nest(cc,"'","'",function(v){return make(v.join(''),'$str')});
-	ccc=nest(cc,"\"","\"",function(v){return make(v.join(''),'$str')});
+	ccc=nest(cc,'"','"',function(v){return make(v.join(''),'$str')});
 	ccd=resolve(ccc, [ 
 		/;/, function(x){return [make(' ','$ws'),make(';','$lit')]},
 		/^[0-9.]+$/, function(x){noemit(x,'making number'); return make(Number(x),'$n');},
@@ -153,6 +155,7 @@ function parse(c) {
 		x=alike(x, function(x,y) {
 			if($sym(x)=='$n') return make($data(x)*10+$data(y),'$n');
 			if($sym(x)=='$lit') return make($data(x)+$data(y),'$lit'); 
+			if($sym(x)=='$str') return make($data(x)+$data(y),'$str'); 
 			/* no return = undefined = skip */ });
 		return x; });
 	ccg=nest(ccf,"(",")",function(v) { return make(v,'$expr'); });
@@ -373,7 +376,7 @@ function code_tests() {
 	assert(r[0],'$num','code7a');
 	c="(2,3) each 'x til'"; r=attempt(c);
 	assert(r[0],[[0,1],[0,1,2]],'code8a');
-	NOEMIT=0;
+	//NOEMIT=0;
 	c="(2,3) each 'til x'"; r=attempt(c);
 	assert(r[0],[[0,1],[0,1,2]],'code8b');
 	c="(2,3) each 'til x' each 'x len'"; r=attempt(c);
@@ -433,6 +436,9 @@ function code_tests() {
 	c="'./test_xact.js' ## '$jsfile' load"; r=attempt(c);assert(r[0],999,'code jsfile load');
 	c="'./xact.js' ## '$jsfile' load "; r=attempt(c); emit(r);
 	c="5,6 each 'x + 2;x + 3'";r=attempt(c);assert(r[0],[8,9],'code each dupe x');
+
+	c="'''a'''";r=attempt(c);assert(r[0],'a','dq a');
+	c='"""123456"""';r=attempt(c);assert(r[0],'123456','dq c');
 	emit('code tests passed!');
 }
 
