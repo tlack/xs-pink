@@ -133,13 +133,10 @@ the parentheses.
 ### Example: Web server that serves HTML page
 
 ```
-rem "Assign two configuration variables:";
 'PORT' <- 8888;
 'ROOT' <- './html/';
-rem "fully qualify template name, tag as '$textfile', and get contents"
 ROOT , 'layout.html' ## '$textfile' load -> 'layout'; 
 'emit "serving request: ", x; layout' -> 'handler';
-rem "pink_lib_web is a wrapper around Node's `HTTPServer`:";
 './pink_lib_web.js' importas '$web'; 
 handler :: PORT ## '$web' -> 'webserver';
 webserver load;
@@ -173,6 +170,8 @@ Noteworthy in this sample:
 * Also note that we picked that name `$web` when we imported it with `importas` -
 	user defined types do not have to know their own typename (when referred to
 	in user code), which should avoid global conflicts. Maybe.
+* Once we have composed our 'webserver' -- using the handler and the port --
+	we use `load` to launch it.
 
 # All verbs thus far
 
