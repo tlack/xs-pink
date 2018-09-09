@@ -215,7 +215,6 @@ A complex example that illustrates that difference between `deep` and `wide`, ou
 0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
 1> n deep 'x , 1' make '$json'
 { '$json': '[[[1,1],[2,1],[3,1]],[[[4,1],[5,1],[6,1]],[[7,1],[8,1],[9,1]]]]' }
-4> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"; 
 2> n wide 'x , 1' make '$json'
 { '$json': '[[1,2,3,1],[[4,5,6,1],[7,8,9,1],1]]' }
 ```
