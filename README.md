@@ -162,7 +162,7 @@ Noteworthy in this sample:
 	bind the web server on, so:
 * So we combine `handler` and `PORT` using
 	`::`, and then tag it as a `$web` type.
-* `::` (also known as `merge`) takes two un-alike things and puts
+* `::` (also known as `glue`) takes two un-alike things and puts
 	them together in a vector. If we were to use `,` (or `insert`), and
 	the types were the same, we would create one long vector, which
 	would be chaos for `$web :: load`.
