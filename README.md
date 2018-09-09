@@ -68,7 +68,7 @@ Other examples may not include the prompt, and your prompt may look different.
 Also, the prompt shows things like Javascript values right now, not Pink
 values. Fix on the way.
 
-First, we generate the first ten numbers (starting from 0):
+First, we generate the first five numbers (starting from 0):
 
 ```
 0> 5 til
