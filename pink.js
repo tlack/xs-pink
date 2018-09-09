@@ -192,7 +192,7 @@ function compile(code, force_arity) {
 	//emit(a,'_###_#_#__##_ ARITY');
 	//emit(je(ptree),'compile() parse tree');
 	if(tU(force_arity)) force_arity=$data_ptree[1];
-	if(force_arity==2) { //emit('compile(): making arity 2 func');
+	if(force_arity==2) { emit('compile(): making arity 2 func');
 		return function compiled_inner_2(left, right, ctx) {
 			//emit([je(left),je(right),je(ctx)],'compile2 - inner');
 			return interp(ptree, ctx, left, right); }
@@ -213,6 +213,7 @@ function make_parsing_y_func(callback, inner_func_type) {
 	if(inner_func_type=='$f2') 
 		return make(function parsed_f2_outer(x, y, ctx) {
 			var y_compiled = !tfunc(y) ? compile(y,2) : y;
+			emit(y,'make_parsing_y_func() compiled');
 			if($sym(y_compiled)=='$err') return y_compiled;
 			function parse_helper2(xx, yy, idx) { emit([xx,yy],'make_parsing_y_func helper/2'); return y_compiled(xx,yy,ctx); }
 			return callback(x, parse_helper2);
