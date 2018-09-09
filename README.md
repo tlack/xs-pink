@@ -175,11 +175,18 @@ Noteworthy in this sample:
 
 # All verbs thus far
 
-`+` 
+`x + y` 
 (missing all the others - ha)
 
 `x amend y` 
 Modify `x` according to `y`:
+
+```
+0> 5,6,7,8 amend ( 0,2 :: 10 )
+[10, 6, 10, 8]
+1> 5,6,7,8 amend ( 0,2 :: (20,21) )
+[20, 6, 21, 8]
+```
 
 `x arity`
 Tell you the number of arguments that the code in string `x` requires, either 1 or 2.
@@ -198,7 +205,7 @@ For deeply glued values in x, perform y on each of the individual values, but no
 overall vectors. An example:
 
 ```
-0> 7,8,9 :: (1,2,3 glue (4,5,6)) deep 'x + 100'
+0> 7,8,9 glue (1,2,3 glue (4,5,6)) deep 'x + 100'
 result :
 [ [ 107, 108, 109 ], [ [ 101, 102, 103 ], [ 104, 105, 106 ] ] ]
 ```
@@ -227,7 +234,7 @@ Remove the first y items from x. If y is negative, remove the last y items from 
 `x emit` or `x ??`
 Outputs x and returns value so you can continue expression.
 
-`x get y`
+`x get y` or `x @ y`
 Index x with y. For instance:
 ```
 0> 5,6,7,8 get 2
