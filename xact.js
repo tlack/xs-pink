@@ -19,10 +19,12 @@ function xact(Scope) {
 
 	// Values: Misc..
 	function amend(x,L,V) {
+		emit([L,V],'amend');
 		if(!tarray(L)) { L=[L]; if (!tfunc(V)) V=[V]; }
+		if(!tfunc(V) && !tarray(V)) V=[V];
 		let i;
 		if(tfunc(V)) for(i=0;i<L.length;i++) x[L[i]]=V(x[L[i]],i);
-		else         for(i=0;i<L.length;i++) x[L[i]]=V[i];
+		else         for(i=0;i<L.length;i++) x[L[i]]=V[i % V.length];
 		return x;
 	} Scope.amend=amend;
 	function copy(x) { 
@@ -222,20 +224,26 @@ function xact(Scope) {
 		var last=x,iter=0;
 		while (1) { x=last; last=f(x,opt,iter); if (eq(x,last)) return last; if (iter++==MAXITER) return last; }
 	} Scope.exhaust=exhaust;
-	function wide(x,f,last,path) { 
-		//emit(je(x),'wide');
-		if(tU(x) || !tarray(x)) return x;
+	function wide0(x,f,last,path) {
+		emit([je(x),path],'wide0');
 		let xl=x.length; if(xl==0) return x;
 		if(last==undefined) last=x;
 		if(path==undefined) path=[];
 		let R=[];
 		for (let i=0;i<xl;i++) {
 			if(tarray(x[i])) { 
-				var p=ins(path,i); last=wide(f(x[i],p,last),f,last,p); 
+				var p=ins(path,i); 
+				last=wide0(f(x[i],p,last),f,last,p); 
 				if(!tU(last)) R.push(last); }
 			else R.push(x[i]);
 		}
 		return R;
+	}
+	function wide(x,f,last,path) { 
+		//emit(je(x),'wide');
+		if(tU(x) || !tarray(x)) return x;
+		R=wide0(x,f,last,path);
+		return f(R,path,last);
 		//[ [ 49, 2, [ 147, 4 ] ], 8 ]
 		//[ [ 7, 2, [ 21, 4 ] ], 8 ]
 	}
@@ -295,6 +303,8 @@ function xact(Scope) {
 			return x; 
 		}
 		function visitAnd(x, path, last) {
+			if(!tarray(x)) return x;
+			emit([x,path,pattern],'visitAnd');
 			let i,j, patn=len(pattern), xn=len(x);
 			for(i=0;i<xn;i++) {
 				emit(i,'i');
@@ -308,15 +318,15 @@ function xact(Scope) {
 						//emit([pj,$sym(pj),xij,$sym(xij)],'visitAnd match');
 						continue;
 					}
-					if(pj == xij) continue;
+					if(eq(pj,xij)) continue;
 					found=0;
 					break;
 				}
 				if (found && j==patn) {
 					var p=ins(path,i);
-					//emit(p,'visitAnd adding path');
-					//emit(i,'visitAnd i');
-					//emit(xij,'visitAnd value xij');
+					emit(p,'visitAnd adding path');
+					emit(pj,'visitAnd pj');
+					emit(xij,'visitAnd value xij');
 					R.push(p); // made it this far, pattern matched
 				}
 			}
@@ -324,7 +334,9 @@ function xact(Scope) {
 		var z;
 		if(tsym(pattern)) {
 			let op=$sym(pattern); 
-			if(op=='$and') { pattern=$data(pattern); z=wide(x,visitAnd); }
+			if(op=='$and') { pattern=$data(pattern);
+			z=wide(x,visitAnd); 
+			return R; }
 		}
 		if(pattern[0]=='$') z=deep(x,visitSym);
 		else z=deep(x,visitVal);
@@ -503,7 +515,7 @@ function xact(Scope) {
 		emit(p,'p');
 		emit(r,'r');
 		assert(r,[[0]],'m1-t2');
-		var d=[1], p=make([1,2],'$and'), r=match(d,p);
+		var d=[[1]], p=make([1,2],'$and'), r=match(d,p);
 		assert(r,[],'m1-t3');
 		var d=[[1,2]], p=make([1,2],'$and'), r=match(d,p);
 		assert(r,[[0,0]],'m1-t4');
