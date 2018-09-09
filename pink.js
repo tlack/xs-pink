@@ -171,7 +171,8 @@ function type(x) {
 	function test_array(x, type) { return x.every(function(y) { return typeof(y)==type; }); }
 	if(tsym(x)) return $sym(x);
 	if(tarray(x)) {
-		var r=merge(take(x,3),take(x,-3));
+		var r=ins(take(x,3),take(x,-3));
+		emit(r,'type tarray');
 		if(test_array(r,'number')) return '$num';
 		if(test_array(r,'string')) return '$str';
 		return 'array'; //i see more difficult general list handling in my near future
@@ -266,7 +267,12 @@ BASE['$p2']=function p2(args) {
 	//emit(args,'p2');
 	return {'$p2':args}; }
 BASE['$str ## +']=make(function(x,y){emit([x,y],'strplus!');return x+y},'$f2');
-BASE['amend']=make(amend,'$f2');
+BASE['amend']=make(function(x,y) {
+	if(!tarray(y) || len(y)!=2)return make_err('amend','type','y should be [[indices],[values]]');
+	let i=y[0],yy=y[1];
+	if(tarray(i) && tarray(yy) && len(i)!=len(yy))return make_err('amend','type','y parts should be eq len or len 1');
+	return amend(x,i,yy);
+},'$f2');
 BASE['arity']=make(arity,'$f1');
 BASE['compile']=make(compile,'$f1');
 /*
@@ -314,9 +320,10 @@ BASE['$jsfile ## load']=make(loadjs,'$f1');
 BASE['$pinkfile ## load']=make(loadpink,'$f1');
 BASE['$textfile ## load']=make(loadtext,'$f1');
 BASE['load']=make(function(x,ctx){return make_err('load','arg','unsure about how to load '+x);},'$f1');
-BASE['over']=make(over,'$f2');
+BASE['over']=make_parsing_y_func(over,'$f2');
 BASE['parse']=make(parse,'$f1');
-BASE['scan']=make(over,'$f2');
+BASE['rem']=make(function(x){return undefined},'$f2');
+BASE['scan']=make_parsing_y_func(scan,'$f2');
 BASE['swapyx']=make(function(x,y,ctx){return call(y,x,ctx);},'$f2');
 BASE['take']=make(take,'$f2');
 BASE['til']=make(til,'$f1');
@@ -424,21 +431,24 @@ function code_tests() {
 	c="'(x) + 1' parse arity";r=attempt(c);assert(r[0],1,'arity 1');
 	c="'y + 1' parse arity";r=attempt(c);assert(r[0],2,'arity 2');
 	c="'y + x' parse arity";r=attempt(c);assert(r[0],2,'arity 3');
-	c="(1,2)::5 eachleft 'x + y'"       ;r=attempt(c);assert(r[0],[6,7],'code each left pre');
-	c="(1,2)::5 eachleft '(x) + y'"     ;r=attempt(c);assert(r[0],[6,7],'code each left pre-a');
-	c="(1,2)::5 eachleft '(x) + (y)'"   ;r=attempt(c);assert(r[0],[6,7],'code each left pre-b');
-	c="(1,2)::5 eachleft 'x + (y)'"     ;r=attempt(c);assert(r[0],[6,7],'code each left pre-c');
-	c="(1,2)::5 eachleft 'x + (y + 1)'" ;r=attempt(c);assert(r[0],[7,8],'code each left pre-c');
-	c="(1,2)::5 eachleft (+)"           ;r=attempt(c);assert(r[0],[6,7],'code each left pre raw');
-	c="(22,5,8)::10 eachleft 'x + y'"   ;r=attempt(c);assert(r[0],[32,15,18],'code each left');
-	c="(5),(7,8,9) eachright 'x + y'"   ;r=attempt(c);assert(r[0],[12,13,14],'code each right');
-	c="(1,2,3),(7,8,9) eachboth 'x + y'";r=attempt(c);assert(r[0],[8,10,12],'code each both');
+	c="(1,2)::5 eachleft 'x + y'"        ;r=attempt(c);assert(r[0],[6,7],'code each left pre');
+	c="(1,2)::5 eachleft '(x) + y'"      ;r=attempt(c);assert(r[0],[6,7],'code each left pre-a');
+	c="(1,2)::5 eachleft '(x) + (y)'"    ;r=attempt(c);assert(r[0],[6,7],'code each left pre-b');
+	c="(1,2)::5 eachleft 'x + (y)'"      ;r=attempt(c);assert(r[0],[6,7],'code each left pre-c');
+	c="(1,2)::5 eachleft 'x + (y + 1)'"  ;r=attempt(c);assert(r[0],[7,8],'code each left pre-c');
+	c="(1,2)::5 eachleft (+)"            ;r=attempt(c);assert(r[0],[6,7],'code each left pre raw');
+	c="(22,5,8)::10 eachleft 'x + y'"    ;r=attempt(c);assert(r[0],[32,15,18],'code each left');
+	c="(5)::(7,8,9) eachright 'x + y'"   ;r=attempt(c);assert(r[0],[12,13,14],'code each right');
+	c="(1,2,3)::(7,8,9) eachboth 'x + y'";r=attempt(c);assert(r[0],[8,10,12],'code each both');
 	c="'./test_xact.js' ## '$jsfile' load"; r=attempt(c);assert(r[0],999,'code jsfile load');
 	c="'./xact.js' ## '$jsfile' load "; r=attempt(c); emit(r);
 	c="5,6 each 'x + 2;x + 3'";r=attempt(c);assert(r[0],[8,9],'code each dupe x');
 
 	c="'''a'''";r=attempt(c);assert(r[0],'a','dq a');
 	c='"""123456"""';r=attempt(c);assert(r[0],'123456','dq c');
+
+	c="1,2,3,4 amend (1::10)";r=attempt(c);assert(r[0],[1,10,3,4],'amend0');
+	c="1,2,3,4 amend ((1,3)::(20,50))";r=attempt(c);assert(r[0],[1,20,3,50],'amend1');
 	emit('code tests passed!');
 }
 
@@ -454,7 +464,7 @@ function repl(n) {
 			emit(je(p),'parsetree');
 			var i=interp(p,C);
 			emit(i,'result');
-			emit(C,'final context');
+			//emit(C,'final context');
 			return repl0();
 		});
 	}
