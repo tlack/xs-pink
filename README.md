@@ -54,7 +54,7 @@ There are only five special cased characters in the Pink parser itself: expressi
 Therefore, when referring to things, you should use spaces around every name, even operators, except for these specific
 case:
 
-** Before or after any number or any of `( ) " ' ;`. **
+__Before or after any number or any of `( ) " ' ;`.__
 
 In cases like 'x y z', where x is a function taking two arguments, and y is a function taking two arguments, y wins.
 
