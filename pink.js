@@ -183,7 +183,7 @@ function type(x) {
 	return u;
 }
 PX.type=type;
-function compile(code) {
+function compile(code, force_arity) {
 	// Returns a function like f(x, ctx) that will do interp(code,ctx,x);
 	emit(code,'compile()');
 	if(!tstr(code)) return make('compile: code is string','$err');
@@ -191,7 +191,8 @@ function compile(code) {
 	//let a=arity(ptree);
 	//emit(a,'_###_#_#__##_ ARITY');
 	//emit(je(ptree),'compile() parse tree');
-	if($data(ptree)[1]==2) { //emit('compile(): making arity 2 func');
+	if(tU(force_arity)) force_arity=$data_ptree[1];
+	if(force_arity==2) { //emit('compile(): making arity 2 func');
 		return function compiled_inner_2(left, right, ctx) {
 			//emit([je(left),je(right),je(ctx)],'compile2 - inner');
 			return interp(ptree, ctx, left, right); }
@@ -211,13 +212,13 @@ function make_parsing_y_func(callback, inner_func_type) {
 	//emit(inner_func_type,'make_parsing_y_func');
 	if(inner_func_type=='$f2') 
 		return make(function parsed_f2_outer(x, y, ctx) {
-			var y_compiled = !tfunc(y) ? compile(y) : y;
+			var y_compiled = !tfunc(y) ? compile(y,2) : y;
 			if($sym(y_compiled)=='$err') return y_compiled;
 			function parse_helper2(xx, yy, idx) { emit([xx,yy],'make_parsing_y_func helper/2'); return y_compiled(xx,yy,ctx); }
 			return callback(x, parse_helper2);
 		},'$f2');
 	return make(function parsed_f1_outer(x, y, ctx) {
-		var y_compiled = !tfunc(y) ? compile(y) : y;
+		var y_compiled = !tfunc(y) ? compile(y,1) : y;
 		if($sym(y_compiled)=='$err') return y_compiled;
 		function parse_helper(xx, idx) { emit(xx,'make_parsing_y_func helper/1'); return y_compiled(xx, ctx); }
 		return callback(x, parse_helper);
@@ -260,6 +261,7 @@ BASE['$f2']=function f2(f){return function f2outer(x,y,ctx){
 	//emit(je(x),'$f2() - returning projection..'); 
 	//emit(ctx,'$f2() - projection ctx'); 
 	return make([f,x],'$p2'); }}
+BASE['$json']=function json(x){return {'$json':je(x)}}
 BASE['$p1']=function p1(func) { if(!tfunc(func)) return make_err('$p1','type'); return {'$p1':[func,undefined]}; }
 BASE['$p2']=function p2(args) {
 	if(!tarray(args) || len(args)!=2) return make_err('$p2','type','arg should be [func,x_arg]');
@@ -275,26 +277,10 @@ BASE['amend']=make(function(x,y) {
 },'$f2');
 BASE['arity']=make(arity,'$f1');
 BASE['compile']=make(compile,'$f1');
-/*
- * BASE['each']=make(function(x,func,ctx) {
-	var compf=projright(compile(func),ctx);
-	emit(compf.toString(),'each compiled func');
-	var R=each(x, compf);
-	emit(R,'each-wrpaper result');
-	return R;
-},'$f2');
-*/
+BASE['deep']=make_parsing_y_func(deep,'$f2');
+BASE['drop']=make(drop,'$f2');
 BASE['each']=make_parsing_y_func(each,'$f1');
 BASE['eachboth']=make_parsing_y_func(eachboth,'$f2');
-/*
-BASE['eachleft']=make(function(x,func,ctx) {
-	var compf=compile(func);
-	emit(compf.toString(),'eachleft compiled func');
-	var R=eachleft(x, function(x,y,i) {return compf(x,y,ctx)});
-	emit(R,'each-wrpaper result');
-	return R;
-},'$f2');
-*/
 BASE['eachleft']=make_parsing_y_func(eachleft,'$f2');
 BASE['eachright']=make_parsing_y_func(eachright,'$f2');
 BASE['+']=make(function adder(x,y){
@@ -306,12 +292,14 @@ BASE['emit']=make(projright(emit,'>> FROM CODELAND'),'$f1');
 BASE['get']=make(get,'$f2');
 BASE['importas']=make(importas,'$f2');
 BASE['interp']=interp;
-BASE['lookup']=lookup;
+BASE['ins']=make(ins,'$f2');
 BASE['is']=make(assign,'$f2');
-BASE['as']=make(function(x,y,ctx){return assign(y,x,ctx)},'$f2');
+ BASE['as']=make(function(x,y,ctx){return assign(y,x,ctx)},'$f2');
 BASE['len']=make(len,'$f1');
+BASE['lookup']=lookup;
 BASE['key']=make(key,'$f1');
-BASE['make']=make(function(x,y){return make(x,y[0]!='$'?'$'+y:y);},'$f2');
+BASE['make']=make(function(x,y,ctx){return make(x,y[0]!='$'?'$'+y:y,ctx);},'$f2');
+BASE['glue']=make(glue,'$f2');
 BASE['$textfile']=function(fn){
 	if(!fs.existsSync(fn)) return make(make(fn,'$filenotfound'),'$err'); 
 	return {'$textfile':fn};}
@@ -329,6 +317,7 @@ BASE['take']=make(take,'$f2');
 BASE['til']=make(til,'$f1');
 BASE['trigger']=make(trigger,'$f2');
 BASE['type']=make(type,'$f1');
+BASE['wide']=make_parsing_y_func(wide,'$f2');
 // SHORT HAND:
 BASE['@']=BASE['get'];
 BASE['??']=BASE['emit'];
@@ -336,7 +325,7 @@ BASE['->']=BASE['is'];
 BASE['<-']=BASE['as'];
 BASE['##']=BASE['make'];
 BASE[',']=make(ins,'$f2');
-BASE['::']=make(merge,'$f2');
+BASE['::']=make(glue,'$f2');
 BASE[';']=make(function(x){return undefined; },'$f1');
 
 function context() { var o=Object.assign({},BASE); return emit(o,'new context()'); }
@@ -379,6 +368,8 @@ function code_tests() {
 	assert(r[0],[2,3],'code5a'); assert(r[1],{'z':[2,3]},'code5b');
 	c="(2,3) take 1 is 'z'"; r=attempt(c);
 	assert(r[0],[2],'code6a'); assert(r[1],{'z':[2]},'code6b');
+	c="(2,3) drop 1 is 'z'"; r=attempt(c);
+	assert(r[0],[3],'code6a'); assert(r[1],{'z':[2]},'code6c');
 	c="2 type"; r=attempt(c); noemit(r);
 	assert(r[0],'$num','code7a');
 	c="(2,3) each 'x til'"; r=attempt(c);

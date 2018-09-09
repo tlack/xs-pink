@@ -11,7 +11,7 @@ function xact(Scope) {
 	function make(x, newtype, makers) {
 		if(!tstr(newtype)) throw 'make(): newtype::str'; // TODO declarative expects
 		makers=makers||MAKERS;
-		if(makers[newtype]) return makers[newtype](x,newtype);
+		if(makers[newtype]) return emit(makers[newtype](x,newtype),'makerrrz');
 		if(newtype[0]=='$') { var o={};o[newtype]=x;return o; }
 		throw 'make(): nyi';
 	}
@@ -71,10 +71,10 @@ function xact(Scope) {
 		};
 		throw 'len: bad arg '+tx;
 	} Scope.len=len;
-	function merge(x,y) { 
-		//emit([x,y],'merge');
+	function glue(x,y) { 
+		//emit([x,y],'glue');
 		if(tsym(x)&&tsym(y)) return make(y,$sym(x)); 
-		return [x,y]; } Scope.merge=merge;
+		return [x,y]; } Scope.glue=glue;
 	function ravel(x) { return tarray(x)?x:[x]; } Scope.ravel=ravel;
 	function $sym(x) { return tsym(x) ? Object.keys(x)[0] : ''; } Scope.$sym=$sym;
 	function $data(x) { return tsym(x) ? Object.values(x)[0] : undefined; } Scope.$data=$data;
@@ -231,7 +231,7 @@ function xact(Scope) {
 		let R=[];
 		for (let i=0;i<xl;i++) {
 			if(tarray(x[i])) { 
-				var p=ins(path,i); last=wide(f(x[i],last,p),f,last,p); 
+				var p=ins(path,i); last=wide(f(x[i],p,last),f,last,p); 
 				if(!tU(last)) R.push(last); }
 			else R.push(x[i]);
 		}
@@ -251,7 +251,7 @@ function xact(Scope) {
 			//emit(xi,'deep x'+i);
 			if(tsym(xi) && tarray($data(xi))) last=deep($data(xi),f,last,p);
 			else if(tarray(xi)) last=deep(xi,f,last,p); 
-			else last=f(xi,last,p);
+			else last=f(xi,p,last);
 			//emit(last,'deep loop last'+i);
 			if(!tU(last)) R.push(last);
 		}
@@ -282,9 +282,9 @@ function xact(Scope) {
 		noemit(x,'match x');
 		noemit(pattern,'match pat');
 		var R=[];
-		function visitSym(x, last, path) { 
+		function visitSym(x, path, last) { 
 			if($sym(x)==pattern) R.push(path); return x; }
-		function visitVal(x, last, path) { 
+		function visitVal(x, path, last) { 
 			if(tsym(pattern) && tsym(x) && ($sym(pattern) == $sym(x))) {
 				if($data(pattern)==[]) R.push(path);
 				if($data(pattern)==$data(x)) R.push(path);
@@ -294,7 +294,7 @@ function xact(Scope) {
 			}
 			return x; 
 		}
-		function visitAnd(x, last, path) {
+		function visitAnd(x, path, last) {
 			let i,j, patn=len(pattern), xn=len(x);
 			for(i=0;i<xn;i++) {
 				emit(i,'i');
@@ -337,7 +337,7 @@ function xact(Scope) {
 		//   [  2, numhandler, 3, numhandler, '$thing', thinghandler, elsehandler.. ]
 		if(!tarray(patterns)) throw 'resolve(): patterns must be [val, func, "$sym", func, elsefunc]';
 		var patn=len(patterns);
-		function _resolve0(x, last, path) {
+		function _resolve0(x, path, last) {
 			var i;
 			//emit(x,'resolve0');
 			for(i=0;i<patn;i+=2) {
@@ -411,7 +411,7 @@ function xact(Scope) {
 		L=[L];
 		//emit(je(L),"nest in");
 		var nestfn=(open == close)?_nest1 : _nest0;
-		R=wide(L,function(x,last,path){return nestfn(x,open,close,handlecb,path);});
+		R=wide(L,function(x,path,last){return nestfn(x,open,close,handlecb,path);});
 		//emit(je(R),'nest out');
 		return R;
 	}
@@ -458,6 +458,9 @@ function xact(Scope) {
 		emit(c,'wide-c');
 		assert(len(c)==1 && $sym(first(c)),'$age','wide1sym');
 		var d=match(t_sym, '$name');
+		assert(len(d),3,'match-er-len-d');
+		emit(t_sym,'tsym');
+		emit(d,'d');
 		var e=eachright([t_sym,d],get);
 		assert(len(e),len(d),'match-er-0');
 		emit(t_sym);
