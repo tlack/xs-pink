@@ -49,14 +49,14 @@ Most syntax that you see actually made up of regular verbs, and you can redefine
 You can name a value (or verb) anything, including punctuation.
 
 There are only five special cased characters in the Pink parser itself: expressions with `(`..`)`, strings with
-`"` or `'` (which can be nested to any odd-numbered depth such as `"hello"` or `'''hello'''`).
+`"` or `'` (which can be nested to any odd-numbered depth such as `"hello"` or `'''hello'''`), and the semicolon.
 
 Therefore, when referring to things, you should use spaces around every name, even operators, except for these specific
 case:
 
-Before or after any number, or `( ) " ' ;`.
+** Before or after any number or any of `( ) " ' ;`. **
 
-In cases like 'x y z', where x is a function taking one argument, and y is a function taking two arguments, y wins.
+In cases like 'x y z', where x is a function taking two arguments, and y is a function taking two arguments, y wins.
 
 That's it!
 
