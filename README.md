@@ -14,7 +14,7 @@ Still gotta do cond() and friends
 
 ## goals
 
-These haven't been achieved:
+These may or may not have been achieved:
 
 * Easy for non-programmers to pick up. Existing programmers should find some familiar pieces.
 
@@ -23,8 +23,11 @@ with a one-page cheat sheet.
 
 * Flexible and adaptable. Good concept of user-defined types and constructs to make them easy to work with.
 
-* Symbolic, not imperative. Inspired by aspect of Mathematica and Erlang, Pink
-	allows for the expression of complex models of information and relationships.
+* All types use the same basic verbs. Even user defined ones.
+
+* Allow for symbolic, not imperative, logic. Inspired by aspects of Mathematica
+	and Erlang, Pink allows for the expression of complex models of information
+	and relationships. Pink's own parser is just a few lines.
 
 * Based on vectors and verbs that penetrate deeply into their arguments so you
 	don't have to write so many god damn explicit loops.
@@ -175,10 +178,10 @@ Noteworthy in this sample:
 
 # All verbs thus far
 
-`x + y` 
+## `x + y` 
 (missing all the others - ha)
 
-`x amend y` 
+## `x amend y` or `x !! y`
 Modify `x` according to `y`:
 
 ```
@@ -188,21 +191,27 @@ Modify `x` according to `y`:
 [20, 6, 21, 8]
 ```
 
-`x arity`
+## `x arity`
 Tell you the number of arguments that the code in string `x` requires, either 1 or 2.
 
-`x as y` or `x <- y`
+## `x as y` or `x <- y`
 Assign the name x to value y in the current scope. Use parentheses around y if it is a
 complex expression.
 
-`x compile`
+## `x compile`
 Parse the code in string x and return function that, when invoked, will interpret it.
 This is optional for most of the system iterator verbs like `each`, which know
 what to do when given a string.
 
-`x deep y`
-For deeply glued values in x, perform y on each of the individual values, but not on the
-overall vectors. An example:
+## `x deep y`
+
+For deeply glued values in `x`, perform `y` on each of the individual values, but not on the
+overall vectors containing them.
+
+`y` is a string of code that can refer to each of those values as `x`. In `y` it can refers that
+values index into the overall structure passed as `x` to `deep`.
+
+An example:
 
 ```
 0> 7,8,9 glue (1,2,3 glue (4,5,6)) deep 'x + 100'
@@ -219,75 +228,142 @@ A complex example that illustrates that difference between `deep` and `wide`, ou
 { '$json': '[[1,2,3,1],[[4,5,6,1],[7,8,9,1],1]]' }
 ```
 
-`x drop y`
+## `x drop y`
+
 Remove the first y items from x. If y is negative, remove the last y items from x.
 
-`x each y`
+```
+0> 3,4,5,6 drop 2
+[ 5, 6 ]
+1> 3,4,5,6 take 2
+[ 3, 4 ]
+```
 
-`(x1::x2) eachboth y`
+## `x each y`
 
-`(x1::x2) eachleft y`
+Perform the code string in `y` for each value in `x` individually.
 
-`(x1::x2) eachright y`
+## `(x1::x2) eachboth y`
 
-`x emit` or `x ??`
+Perform the code string in `y` for each of the pairs of values found in `x`.
+`x` should be a glue of two vectors of the same length. These will then become
+`x` and `y` parameters in the code string.
+
+```
+0> 4,5,6 :: (10,20,30) eachboth (+)
+[ 14, 25, 36 ]
+```
+
+## `(x1::x2) eachleft y`
+
+Perform the code string in `y` with each item in `x[0]` as `x`, and `x[1]` as `y`.
+
+```
+0> 4,5,6 :: 10 eachleft (+)
+[ 14, 15, 16]
+```
+
+## `(x1::x2) eachright y`
+
+Perform the code in string `y` with `x[0]` as x, and each value in `x[1]` as y.
+
+```
+0> 50 :: (4,5,6) eachright (+)
+[ 54, 55, 56]
+```
+
+## `x emit` or `x ??`
 Outputs x and returns value so you can continue expression.
 
-`x get y` or `x @ y`
+## `x get y` or `x @ y`
+
 Index x with y. For instance:
 ```
 0> 5,6,7,8 get 2
 7
 ```
 
-`x importas y`
+For glued structures, you can use get to index deeply into elements with a vector as `y`:
+
+```
+0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
+1> n @ (1, 1, 2)
+9
+```
+
+## `x importas y`
+
 Load code library from file named in x, and give it the user-defined type y.
 
-`x interp y`
+This is a WIP. See `pink_lib_web.js` for some hints.
 
-`x ins y` or `x , y`
+## `x interp y`
+
+## `x ins y` or `x , y`
+
 Combine x and y into one vector. If x and y are not of the same type, you should probably use
 `glue` (also known as `::`) - see below.
 
-`x is y` or `x -> y`
+## `x is y` or `x -> y`
 Assign the name y to value x in the current scope.
 
-`x len`
+## `x len`
 Return length of vector x. If it's a single value, the length is 1.
 
-`x key`
+## `x key`
 Return the indices of x. If x is a dictionary, these are its keys. Use
 `x value` to get its corresponding values.
 
-`x make y` or `x ## y`
+## `x make y` or `x ## y`
 Transform x into type y. 
 
-`x glue y` or `x :: y`
+## `x glue y` or `x :: y`
 Stick two unlike things together into one unit, which retaining the structure of both. The result is a vector, but it's a deeply structured one.
 This is similar to making a linked list in other languages.
 
-`x over y` 
-Perform y between each of the values in x in sequence, returning final value.
+## `x over y` 
+Perform y between each of the values in x in sequence, returning final value. See also `scan`.
 
-`x parse`
+```
+0> 20,40,60 over (+)
+120
+1> 20,40,60 scan (+)
+60,120
+```
+
+## `x parse`
 Return Pink parse tree for code string in x. Use `interp` to run it.
 
-`rem x` or `x rem`
+## `rem x` or `x rem`
 A comment.
 
-`x scan y`
+## `x scan y`
 Perform y over each of the values in x in sequence, accumulating and returning each of the return values.
 
-`x take y`
+```
+0> 20,40,60 over (+)
+120
+1> 20,40,60 scan (+)
+60,120
+```
+
+## `x take y`
 Return the first y items of x. If y is negative, return the last y items of x (but not backward).
 
-`x til`
+```
+0> 3,4,5,6 take 2
+[ 3, 4 ]
+1> 3,4,5,6 drop 2
+[ 5, 6 ]
+```
+
+## `x til`
 Return the numbers 0, 1.. up to x-1.
 
-`x type`
+## `x type`
 Return the type of x
 
-`x wide y`
+## `x wide y`
 For deeply glued values in x, perform y on each of the individual vectors, but not the individual values themselves.
 
 ```
@@ -304,5 +380,10 @@ A complex example that illustrates that difference between `deep` and `wide`, ou
 2> n wide 'x , 1' make '$json'
 { '$json': '[[1,2,3,1],[[4,5,6,1],[7,8,9,1],1]]' }
 ```
+
+# TODO
+
+Conditionals verbs, more forms of looping and recursion, integers, dates/times, better match()
+
 
 
