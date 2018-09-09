@@ -60,7 +60,7 @@ In cases like 'x y z', where x is a function taking two arguments, and y is a fu
 
 That's it!
 
-### Example: Messing with values
+### examples: Messing with values
 
 In these examples I'm going to include the Pink prompt and the results as well.
 Other examples may not include the prompt, and your prompt may look different.
@@ -74,6 +74,7 @@ First, we generate the first five numbers (starting from 0):
 0> 5 til
 [0, 1, 2, 3, 4]
 ```
+
 Now, we save it to a variable that we name:
 ```
 1> 5 til is "numbers"
@@ -113,8 +114,8 @@ What if we didn't want to add 20?
 
 `eachleft` takes an array in x of two parts: the "left" values, and the "right"
 value (i.e., `( (1,2,3) :: 6 )`), and calls your code with each item in x[0]
-as `x`, and `x[1]` as `y`. We use `::` to stick together the two values so that
-we are sure they don't get combined into one long vector.
+as `x`, and `x[1]` as `y`. We *glue* the vector together using `::` so they
+don't get combined into one long vector.
 
 ```
 4> numbers :: 10 eachleft 'x + y'
@@ -122,7 +123,7 @@ we are sure they don't get combined into one long vector.
 5> numbers :: 10 eachleft (+)
 [10, 11, 12, 13, 14]
 ```
-Also notice here that we used `(+)` to refer to a function without using a code
+Also notice here that we used `(+)` to refer to the `+` verb without using a code
 string. This only works when you enclose the function in a subexpression with
 the parentheses.
 
@@ -133,7 +134,7 @@ the parentheses.
 [7, 8, 9, 10, 11]
 ```
 
-### Example: Web server that serves HTML page
+### example: Static HTML web server
 
 ```
 'PORT' <- 8888;
@@ -154,22 +155,23 @@ Noteworthy in this sample:
 * In Pink, code is written as simple strings. You are encouraged to go from a
 	string, to its parse tree representation and back and forth, load and restore
 	it, etc.
-* `importas` loads the Javascript code named in `x` and exposes its interface
-	as a user-defined type given in `y`.  We use dollar signs when naming user
-	types for clarity. This may be dropped in the future.
-* The `pink_lib_web.js` module here defines a `load` function that expects
-	an x parameter consisting of the handler callback code and the address to 
-	bind the web server on, so:
-* So we combine `handler` and `PORT` using
-	`::`, and then tag it as a `$web` type.
-* `::` (also known as `glue`) takes two un-alike things and puts
-	them together in a vector. If we were to use `,` (or `insert`), and
-	the types were the same, we would create one long vector, which
-	would be chaos for `$web :: load`.
 * `##` (or `make`) transforms values from one kind (type) to another. It's
 	similar to a combination of `cast()` and parametized `new()` in other
 	languages, because user defined types override `##` to create their own
 	behaviors around instantiation of that type.
+* The `$textfile` type has load overriden to return the contents of a filename.
+* `importas` loads the Javascript code named in `x` and exposes its interface
+	as a user-defined type given in `y`. We use dollar signs when naming user
+	types for clarity. (This `$` thing may be dropped in the future.)
+* The `pink_lib_web.js` module here defines a `load` verb that expects an x
+	parameter consisting of the handler callback code and the address to bind the
+	web server on, so we build it:
+* So we combine `handler` and `PORT` using
+	the glue verb `::`, and then tag it as a `$web` type.
+* `::` (also known as `glue`) takes two un-alike things and puts
+	them together in a vector. If we were to use `,` (or `insert`), and
+	the types were the same, we would create one long vector, which
+	would be chaos for `$web :: load`.
 * Also note that we picked that name `$web` when we imported it with `importas` -
 	user defined types do not have to know their own typename (when referred to
 	in user code), which should avoid global conflicts. Maybe.
@@ -208,8 +210,8 @@ what to do when given a string.
 For deeply glued values in `x`, perform `y` on each of the individual values, but not on the
 overall vectors containing them.
 
-`y` is a string of code that can refer to each of those values as `x`. In `y` it can refers that
-values index into the overall structure passed as `x` to `deep`.
+The code string in `y` can use `x` to refer to the item being considered and
+`y` for its index in the overall data structure.
 
 An example:
 
@@ -219,7 +221,7 @@ result :
 [ [ 107, 108, 109 ], [ [ 101, 102, 103 ], [ 104, 105, 106 ] ] ]
 ```
 
-A complex example that illustrates that difference between `deep` and `wide`, outputting json for clarity:
+A complex example that illustrates that difference between `deep` and `wide`, outputting json (with `make`) for clarity:
 ```
 0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
 1> n deep 'x , 1' make '$json'
@@ -322,6 +324,7 @@ Stick two unlike things together into one unit, which retaining the structure of
 This is similar to making a linked list in other languages.
 
 ### `x over y` 
+
 Perform y between each of the values in x in sequence, returning final value. See also `scan`.
 
 ```
@@ -373,6 +376,7 @@ For deeply glued values in x, perform y on each of the individual vectors, but n
 ```
 
 A complex example that illustrates that difference between `deep` and `wide`, outputting json for clarity:
+
 ```
 0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
 1> n deep 'x , 1' make '$json'
@@ -384,6 +388,4 @@ A complex example that illustrates that difference between `deep` and `wide`, ou
 # TODO
 
 Conditionals verbs, more forms of looping and recursion, integers, dates/times, better match()
-
-
 
