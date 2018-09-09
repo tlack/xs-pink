@@ -29,31 +29,31 @@ with a one-page cheat sheet.
 * Based on vectors and verbs that penetrate deeply into their arguments so you
 	don't have to write so many god damn explicit loops.
 
-## syntax
+## syntax, semantics
 
-Pink is very simple. 
+Pink is very simple. Here are all the rules:
 
-Here are all the rules:
+There is no precedence or order of operations.
 
-The space character is all that really matters - although it's 100% whitespace adverse otherwise.
+The space character is all that really matters. It's 100% whitespace agnostic otherwise.
 
 Code that can be executed, or functions in general parlance, are called often called verbs in Pink. 
-All functions (verbs) have one or two parameters, refered to by parameters as `x` and `y`.
+All functions (verbs) have one or two parameters, refered to as `x` and `y` inside source code.
 
 Most syntax that you see actually made up of regular verbs, and you can redefine them for your own user-defined types. 
 (This even includes comments via `rem`, annoyingly.) 
 
 You can name a value (or verb) anything, including punctuation.
 
-There is no precedence, or order of operations.
-
 There are only five special cased characters in the Pink parser itself: expressions with `(`..`)`, strings with
-`"` or `'`, which can be nested to any odd-numbered depth such as `"hello"` or `'''hello'''`.
+`"` or `'` (which can be nested to any odd-numbered depth such as `"hello"` or `'''hello'''`).
 
 Therefore, when referring to things, you should use spaces around every name, even operators, except for these specific
 case:
 
 Before or after any number, or `( ) " ' ;`.
+
+In cases like 'x y z', where x is a function taking one argument, and y is a function taking two arguments, y wins.
 
 That's it!
 
@@ -71,7 +71,6 @@ First, we generate the first ten numbers (starting from 0):
 0> 5 til
 [0, 1, 2, 3, 4]
 ```
-
 Now, we save it to a variable that we name:
 ```
 1> 5 til is "numbers"
@@ -127,7 +126,7 @@ the parentheses.
 `eachright` does the same, but with the `y` parameter to your code varying, and
 `x` being fixed.
 ```
-4> 7 :: numbers eachright (+)
+6> 7 :: numbers eachright (+)
 [7, 8, 9, 10, 11]
 ```
 
@@ -145,10 +144,11 @@ rem "pink_lib_web is a wrapper around Node's `HTTPServer`:";
 handler :: PORT ## '$web' -> 'webserver';
 webserver load;
 "web server launched on on " , PORT , " in " , ROOT emit;
-` ``
+```
 
 Noteworthy in this sample:
 
+* We're using the short forms of Pink verbs here.
 * When you assign to a value to a variable, you specify its name as a string. 
 * You can assign variables either as `x -> y` with `y -> 'x'`. You can also use `is` or `as`. 
 * In Pink, code is written as simple strings. You are encouraged to go from a
