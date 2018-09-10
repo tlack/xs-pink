@@ -62,8 +62,13 @@ That's it!
 
 ### examples: Messing with values
 
+**Note:** 
 In these examples I'm going to include the Pink prompt and the results as well.
 Other examples may not include the prompt, and your prompt may look different.
+
+```
+pink 0>
+```
 
 Also, the prompt shows things like Javascript values right now, not Pink
 values. Fix on the way.
@@ -71,13 +76,13 @@ values. Fix on the way.
 First, we generate the first five numbers (starting from 0):
 
 ```
-0> 5 til
+pink 0> 5 til
 [0, 1, 2, 3, 4]
 ```
 
 Now, we save it to a variable that we name:
 ```
-1> 5 til is "numbers"
+pink 1> 5 til is "numbers"
 [0, 1, 2, 3, 4]
 ```
 
@@ -91,7 +96,7 @@ between" each value of the thing on the left.  Some other languages call this
 quotes anymore.  Unquoted names get replaced by their values, as you'd expect.
 
 ```
-2> numbers over 'x + y'
+pink 2> numbers over 'x + y'
 10
 ```
 
@@ -104,7 +109,7 @@ Let's check out some more verbs that do stuff with our code.
 
 `each` applies your code (given in `y` again) for each item, and returns it.
 ```
-3> numbers each 'x + 20'
+pink 3> numbers each 'x + 20'
 [20, 21, 22, 23, 24]
 ```
 (Note that `+` actually automatically accepts vectors for either argument, so we
@@ -118,9 +123,9 @@ as `x`, and `x[1]` as `y`. We *glue* the vector together using `::` so they
 don't get combined into one long vector.
 
 ```
-4> numbers :: 10 eachleft 'x + y'
+pink 4> numbers :: 10 eachleft 'x + y'
 [10, 11, 12, 13, 14]
-5> numbers :: 10 eachleft (+)
+pink 5> numbers :: 10 eachleft (+)
 [10, 11, 12, 13, 14]
 ```
 Also notice here that we used `(+)` to refer to the `+` verb without using a code
@@ -130,7 +135,7 @@ the parentheses.
 `eachright` does the same, but with the `y` parameter to your code varying, and
 `x` being fixed.
 ```
-6> 7 :: numbers eachright (+)
+pink 6> 7 :: numbers eachright (+)
 [7, 8, 9, 10, 11]
 ```
 
@@ -187,9 +192,9 @@ Noteworthy in this sample:
 Modify `x` according to `y`:
 
 ```
-0> 5,6,7,8 amend ( 0,2 :: 10 )
+pink 0> 5,6,7,8 amend ( 0,2 :: 10 )
 [10, 6, 10, 8]
-1> 5,6,7,8 amend ( 0,2 :: (20,21) )
+pink 1> 5,6,7,8 amend ( 0,2 :: (20,21) )
 [20, 6, 21, 8]
 ```
 
@@ -216,17 +221,17 @@ The code string in `y` can use `x` to refer to the item being considered and
 An example:
 
 ```
-0> 7,8,9 glue (1,2,3 glue (4,5,6)) deep 'x + 100'
+pink 0> 7,8,9 glue (1,2,3 glue (4,5,6)) deep 'x + 100'
 result :
 [ [ 107, 108, 109 ], [ [ 101, 102, 103 ], [ 104, 105, 106 ] ] ]
 ```
 
 A complex example that illustrates that difference between `deep` and `wide`, outputting json (with `make`) for clarity:
 ```
-0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
-1> n deep 'x , 1' make '$json'
+pink 0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
+pink 1> n deep 'x , 1' make '$json'
 { '$json': '[[[1,1],[2,1],[3,1]],[[[4,1],[5,1],[6,1]],[[7,1],[8,1],[9,1]]]]' }
-2> n wide 'x , 1' make '$json'
+pink 2> n wide 'x , 1' make '$json'
 { '$json': '[[1,2,3,1],[[4,5,6,1],[7,8,9,1],1]]' }
 ```
 
@@ -235,9 +240,9 @@ A complex example that illustrates that difference between `deep` and `wide`, ou
 Remove the first y items from x. If y is negative, remove the last y items from x.
 
 ```
-0> 3,4,5,6 drop 2
+pink 0> 3,4,5,6 drop 2
 [ 5, 6 ]
-1> 3,4,5,6 take 2
+pink 1> 3,4,5,6 take 2
 [ 3, 4 ]
 ```
 
@@ -252,7 +257,7 @@ Perform the code string in `y` for each of the pairs of values found in `x`.
 `x` and `y` parameters in the code string.
 
 ```
-0> 4,5,6 :: (10,20,30) eachboth (+)
+pink 0> 4,5,6 :: (10,20,30) eachboth (+)
 [ 14, 25, 36 ]
 ```
 
@@ -261,7 +266,7 @@ Perform the code string in `y` for each of the pairs of values found in `x`.
 Perform the code string in `y` with each item in `x[0]` as `x`, and `x[1]` as `y`.
 
 ```
-0> 4,5,6 :: 10 eachleft (+)
+pink 0> 4,5,6 :: 10 eachleft (+)
 [ 14, 15, 16]
 ```
 
@@ -270,7 +275,7 @@ Perform the code string in `y` with each item in `x[0]` as `x`, and `x[1]` as `y
 Perform the code in string `y` with `x[0]` as x, and each value in `x[1]` as y.
 
 ```
-0> 50 :: (4,5,6) eachright (+)
+pink 0> 50 :: (4,5,6) eachright (+)
 [ 54, 55, 56]
 ```
 
@@ -281,15 +286,15 @@ Outputs x and returns value so you can continue expression.
 
 Index x with y. For instance:
 ```
-0> 5,6,7,8 get 2
+pink 0> 5,6,7,8 get 2
 7
 ```
 
 For glued structures, you can use get to index deeply into elements with a vector as `y`:
 
 ```
-0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
-1> n @ (1, 1, 2)
+pink 0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
+pink 1> n @ (1, 1, 2)
 9
 ```
 
@@ -328,9 +333,9 @@ This is similar to making a linked list in other languages.
 Perform y between each of the values in x in sequence, returning final value. See also `scan`.
 
 ```
-0> 20,40,60 over (+)
+pink 0> 20,40,60 over (+)
 120
-1> 20,40,60 scan (+)
+pink 1> 20,40,60 scan (+)
 60,120
 ```
 
@@ -344,9 +349,9 @@ A comment.
 Perform y over each of the values in x in sequence, accumulating and returning each of the return values.
 
 ```
-0> 20,40,60 over (+)
+pink 0> 20,40,60 over (+)
 120
-1> 20,40,60 scan (+)
+pink 1> 20,40,60 scan (+)
 60,120
 ```
 
@@ -354,9 +359,9 @@ Perform y over each of the values in x in sequence, accumulating and returning e
 Return the first y items of x. If y is negative, return the last y items of x (but not backward).
 
 ```
-0> 3,4,5,6 take 2
+pink 0> 3,4,5,6 take 2
 [ 3, 4 ]
-1> 3,4,5,6 drop 2
+pink 1> 3,4,5,6 drop 2
 [ 5, 6 ]
 ```
 
@@ -370,7 +375,7 @@ Return the type of x
 For deeply glued values in x, perform y on each of the individual vectors, but not the individual values themselves.
 
 ```
-0> 7,8,9 :: (1,2,3 glue (4,5,6)) wide 'x , 777'
+pink 0> 7,8,9 :: (1,2,3 glue (4,5,6)) wide 'x , 777'
 [ [ 7, 8, 9, 777 ],
   [ [ 1, 2, 3, 777 ], [ 4, 5, 6, 777 ], 777 ] ]
 ```
@@ -378,10 +383,10 @@ For deeply glued values in x, perform y on each of the individual vectors, but n
 A complex example that illustrates that difference between `deep` and `wide`, outputting json for clarity:
 
 ```
-0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
-1> n deep 'x , 1' make '$json'
+pink 0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
+pink 1> n deep 'x , 1' make '$json'
 { '$json': '[[[1,1],[2,1],[3,1]],[[[4,1],[5,1],[6,1]],[[7,1],[8,1],[9,1]]]]' }
-2> n wide 'x , 1' make '$json'
+pink 2> n wide 'x , 1' make '$json'
 { '$json': '[[1,2,3,1],[[4,5,6,1],[7,8,9,1],1]]' }
 ```
 

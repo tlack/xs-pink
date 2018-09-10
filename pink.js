@@ -321,6 +321,7 @@ BASE['type']=make(type,'$f1');
 BASE['wide']=make_parsing_y_func(wide,'$f2');
 // SHORT HAND:
 BASE['@']=BASE['get'];
+BASE['!!']=BASE['amend'];
 BASE['??']=BASE['emit'];
 BASE['->']=BASE['is'];
 BASE['<-']=BASE['as'];
@@ -441,13 +442,14 @@ function code_tests() {
 
 	c="1,2,3,4 amend (1::10)";r=attempt(c);assert(r[0],[1,10,3,4],'amend0');
 	c="1,2,3,4 amend ((1,3)::(20,50))";r=attempt(c);assert(r[0],[1,20,3,50],'amend1');
+	c="1,2,3,4 amend ((1,3)::20)";r=attempt(c);assert(r[0],[1,20,3,20],'amend2');
 	emit('code tests passed!');
 }
 
 function repl(n) {
 	function repl0() {
 		n++;
-		rl.question(n+'> ',function(x){ 
+		rl.question('pink '+n+'> ',function(x){ 
 			emit(je(x),'input');
 			x=x.trim();
 			if(x=='') return repl0();
