@@ -242,8 +242,11 @@ function xact(Scope) {
 	function wide(x,f,last,path) { 
 		//emit(je(x),'wide');
 		if(tU(x) || !tarray(x)) return x;
-		R=wide0(x,f,last,path);
-		return f(R,path,last);
+		R=f(x,path,last);
+		R=wide0(R,f,last,path);
+		//if (tarray(R)) return f(R,path,last);
+		//else return R;
+		return R;
 		//[ [ 49, 2, [ 147, 4 ] ], 8 ]
 		//[ [ 7, 2, [ 21, 4 ] ], 8 ]
 	}
