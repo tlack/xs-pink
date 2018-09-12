@@ -218,6 +218,15 @@ Tell you the number of arguments that the code in string `x` requires, either 1 
 Assign the name x to value y in the current scope. Use parentheses around y if it is a
 complex expression.
 
+### `x case y` 
+
+Test `x` according to cases in `y`.
+
+```
+pink 0> 2 case (1,'one',2,'two',3,'three')
+'two'
+```
+
 ### `x compile`
 Parse the code in string x and return function that, when invoked, will interpret it.
 This is optional for most of the system iterator verbs like `each`, which know
