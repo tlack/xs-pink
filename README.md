@@ -139,6 +139,19 @@ pink 6> 7 :: numbers eachright (+)
 [7, 8, 9, 10, 11]
 ```
 
+Dictionaries are a list of keys linked with a list of values.
+
+Create them with `**key** dict **value**` or `key :> value`.
+
+Use `len`, `key`, `value` to manipulate.
+
+```
+pink 0> "name" :> "Arca",("age" :> 5) key
+[ "name", "age" ]
+```
+
+More coming soon.
+
 ### example: Static HTML web server
 
 ```
@@ -235,6 +248,10 @@ pink 2> n wide 'x , 1' make '$json'
 { '$json': '[[1,2,3,1],[[4,5,6,1],[7,8,9,1],1]]' }
 ```
 
+### `x dict y` or `x :> y` 
+
+Create a dictionary with one value: the key `x` linked with value `y`.
+
 ### `x drop y`
 
 Remove the first y items from x. If y is negative, remove the last y items from x.
@@ -280,12 +297,19 @@ pink 0> 50 :: (4,5,6) eachright (+)
 ```
 
 ### `x emit` or `x ??`
-Outputs x and returns value so you can continue expression.
+
+Outputs x to the debugging interface. Also returns value so you can continue expression.
+
+```
+pink 0> 123 emit + 456 
+123 
+579
+```
 
 ### `x get y` or `x @ y`
 
 Index x with y. For instance:
-```
+```l
 pink 0> 5,6,7,8 get 2
 7
 ```
@@ -296,6 +320,13 @@ For glued structures, you can use get to index deeply into elements with a vecto
 pink 0> 1,2,3 :: (4,5,6 :: (7, 8, 9)) -> "n"
 pink 1> n @ (1, 1, 2)
 9
+```
+
+For dictionaries, `get` allows you to look up by key. (See also `dict`, `key` and `value`)
+
+```
+pink 0> "city" :> "Miami",("temp" :> "Awful") @ "city"
+"Miami"
 ```
 
 ### `x importas y`

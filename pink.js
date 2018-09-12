@@ -223,9 +223,9 @@ function dict(x, y, ctx) {
 }
 PX.dict=dict;
 function dictget(x,y) { 
-	let xx=$data(x),i;
-	if((i=xx[0].indexOf(y)) != -1)
-		return xx[1][i];
+	let xx=$data(x),i=xx[0].indexOf(y);
+	emit(i,'dictget');
+	if((i=xx[0].indexOf(y)) != -1) return xx[1][i];
 	return make_err('$dict ## get','key');
 } PX.dictget=dictget;
 function dictkey(x, ctx) {
@@ -363,11 +363,13 @@ BASE[';']=make(function(x){return undefined; },'$f1');
 
 BASE['dict']=make(dict,'$f2');
 BASE['$dict ## ins']=make(dictins,'$f2');
+BASE['$dict ## get']=make(dictget,'$f2');
 BASE['$dict ## key']=make(dictkey,'$f1');
 BASE['$dict ## len']=make(dictlen,'$f1');
 BASE['$dict ## value']=make(dictvalue,'$f1');
 BASE[':>']=BASE['dict'];
 BASE['$dict ## ,']=make(dictins,'$f2');
+BASE['$dict ## @']=make(dictget,'$f2');
 
 BASE['$str ## +']=make(function(x,y){emit([x,y],'strplus!');return x+y},'$f2');
 
@@ -513,6 +515,7 @@ function code_tests() {
 	c="'name':>'blob' key";r=attempt(c);assert(r[0],['name'],'dict 3');
 	c="'name':>'blob' len";r=attempt(c);assert(r[0],1,'dict 4');
 	c="'name':>'blob',('age':>22) len";r=attempt(c);assert(r[0],2,'dict 5');
+	c="'name':>'blob',('age':>22)@'age'";r=attempt(c);assert(r[0],22,'dict 6');
 	emit('code tests passed!');
 }
 
