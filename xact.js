@@ -225,6 +225,7 @@ function xact(Scope) {
 		while (1) { x=last; last=f(x,opt,iter); if (eq(x,last)) return last; if (iter++==MAXITER) return last; }
 	} Scope.exhaust=exhaust;
 	function wide0(x,f,last,path) {
+		if(tU(x) || !tarray(x)) return x;
 		emit([je(x),path],'wide0');
 		let xl=x.length; if(xl==0) return x;
 		if(last==undefined) last=x;
@@ -242,11 +243,9 @@ function xact(Scope) {
 	function wide(x,f,last,path) { 
 		//emit(je(x),'wide');
 		if(tU(x) || !tarray(x)) return x;
-		R=f(x,path,last);
-		R=wide0(R,f,last,path);
-		//if (tarray(R)) return f(R,path,last);
-		//else return R;
-		return R;
+		let R=wide0(x,f,last,path);
+		if (tarray(R)) return f(R,path,last);
+		else return R;
 		//[ [ 49, 2, [ 147, 4 ] ], 8 ]
 		//[ [ 7, 2, [ 21, 4 ] ], 8 ]
 	}
@@ -352,19 +351,25 @@ function xact(Scope) {
 		//   [  2, numhandler, 3, numhandler, '$thing', thinghandler, elsehandler.. ]
 		if(!tarray(patterns)) throw 'resolve(): patterns must be [val, func, "$sym", func, elsefunc]';
 		var patn=len(patterns);
+		function _test_pat(x, pat, val) {
+			emit([x,pat,val],'_test_pat');
+			if(tsym(pat)) {
+				if($sym(x) != $sym(pat)) return undefined;
+				let d=$data(pat);
+				// javascript is such a piece of shit
+				if((!tarray(d) || d.length>0) && d!=$data(x)) return undefined;
+			} else if (pat.test) {
+				if (!pat.test(x)) return undefined;
+			} else if (pat != x) return undefined;
+			if(tfunc(val)) x=val(x); else x=val;
+			return x;
+		}
 		function _resolve0(x, path, last) {
 			var i;
 			//emit(x,'resolve0');
 			for(i=0;i<patn;i+=2) {
-				if(tsym(patterns[i]) && $sym(x)==$sym(patterns[i]) ||
-					 patterns[i]==x ||
-					 (patterns[i].test && patterns[i].test(x))) {
-					//emit([x, patterns[i]],'resolve sym match');
-					var fn=patterns[i+1];
-					if(tfunc(fn)) x=fn(x); else x=fn;
-					//emit(x,'new value');
-					break;
-				}
+				let r=_test_pat(x, patterns[i], patterns[i+1]);
+				if(!tU(r)) return r;
 			}
 			return x;
 		}

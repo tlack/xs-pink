@@ -1,13 +1,6 @@
 // 
 // pink in javascript
-// 
-
-// TODO allow modifying:
-// - lexer
-// - lexer->parser (resolver)
-// - "makers" ("handlers")? -> done
 //
-// need a good way to fmt any value (ughhh)
 
 PX={};
 if(typeof(require)!='undefined') {
@@ -204,10 +197,54 @@ function compile(code, force_arity) {
 	}
 }
 PX.compile=compile;
-function make_err($func_name, $type, $val) {
-	return make([$func_name, $type, $val],'$err');
+function case_(x,y,ctx) {
+	let yn=len(y),yi=0,yy,ysucc,r;
+	for(;yi<yn-1;yi+=2) {
+		yy=y[yi]; ysucc=y[yi+1];
+		if(tfunc(yy)) {
+			r=yy(x,ctx);
+			if(r) r=ysucc; break;
+		} else if (eq(yy,x)) {
+			r=ysucc; break;
+		}
+	}
+	if(!tU(r)) return r;
+	if(yn%2==1) {
+		r=y[yn-1];
+		if(tfunc(r)) return r(x,ctx);
+		else return r;
+	}
+	return x;
 }
-PX.make_err=make_err;
+PX.case_=case_;
+function dict(x, y, ctx) {
+	if((!tarray(x) && !tarray(y)) || len(x) != len(y)) { x=[x]; y=[y]; }
+	return make([x,y],'$dict');
+}
+PX.dict=dict;
+function dictget(x,y) { 
+	let xx=$data(x),i;
+	if((i=xx[0].indexOf(y)) != -1)
+		return xx[1][i];
+	return make_err('$dict ## get','key');
+} PX.dictget=dictget;
+function dictkey(x, ctx) {
+	return $data(x)[0];
+} PX.dictkey=dictkey;
+function dictlen(x) { return $data(x)[0].length; } PX.dictlen=dictlen;
+function dictvalue(x, ctx) { return $data(x)[1]; } PX.dictvalue=dictvalue;
+function dictins(x, y, ctx) {
+	if($sym(y)=='$dict') {
+		let d=$data(x), yy=$data(y), yn=len(yy[0]), yi;
+		emit([x,yy],'dictins');
+		for(yi=0;yi<yn;yi++) { d[0].push(yy[0][yi]); d[1].push(yy[1][yi]); }
+		return {'$dict':d};
+		//return x;
+	} else  return make_err('$dict ## ins', 'type');
+} PX.dictins=dictins;
+function make_err(func_name, type, val) {
+	return make([func_name, type, val],'$err');
+} PX.make_err=make_err;
 function make_parsing_y_func(callback, inner_func_type) {
 	//emit(inner_func_type,'make_parsing_y_func');
 	if(inner_func_type=='$f2') 
@@ -269,7 +306,6 @@ BASE['$p2']=function p2(args) {
 	if(!tfunc(args[0])) return make_err('$p2','type','arg[0] should be function');
 	//emit(args,'p2');
 	return {'$p2':args}; }
-BASE['$str ## +']=make(function(x,y){emit([x,y],'strplus!');return x+y},'$f2');
 BASE['amend']=make(function(x,y) {
 	if(!tarray(y) || len(y)!=2)return make_err('amend','type','y should be [[indices],[values]]');
 	let i=y[0],yy=y[1];
@@ -278,6 +314,7 @@ BASE['amend']=make(function(x,y) {
 },'$f2');
 BASE['arity']=make(arity,'$f1');
 BASE['compile']=make(compile,'$f1');
+BASE['case']=make(case_,'$f2');
 BASE['deep']=make_parsing_y_func(deep,'$f2');
 BASE['drop']=make(drop,'$f2');
 BASE['each']=make_parsing_y_func(each,'$f1');
@@ -290,6 +327,7 @@ BASE['+']=make(function adder(x,y){
 	if(len(x)==1) x=take(x,len(y)); 
 	return eachboth([x,y],function(x,y){emit([x,y],'+e');return x+y})},'$f2');
 BASE['emit']=make(projright(emit,'>> FROM CODELAND'),'$f1');
+BASE['eq']=make(eq,'$f2');
 BASE['get']=make(get,'$f2');
 BASE['importas']=make(importas,'$f2');
 BASE['interp']=interp;
@@ -301,13 +339,6 @@ BASE['lookup']=lookup;
 BASE['key']=make(key,'$f1');
 BASE['make']=make(function(x,y,ctx){return make(x,y[0]!='$'?'$'+y:y,ctx);},'$f2');
 BASE['glue']=make(glue,'$f2');
-BASE['$textfile']=function(fn){
-	if(!fs.existsSync(fn)) return make(make(fn,'$filenotfound'),'$err'); 
-	return {'$textfile':fn};}
-//BASE['$textfile ## load']=make(function(x){return fs.readFileSync($data(x),'utf8');},'$f1');
-BASE['$jsfile ## load']=make(loadjs,'$f1');
-BASE['$pinkfile ## load']=make(loadpink,'$f1');
-BASE['$textfile ## load']=make(loadtext,'$f1');
 BASE['load']=make(function(x,ctx){return make_err('load','arg','unsure about how to load '+x);},'$f1');
 BASE['over']=make_parsing_y_func(over,'$f2');
 BASE['parse']=make(parse,'$f1');
@@ -329,6 +360,24 @@ BASE['##']=BASE['make'];
 BASE[',']=make(ins,'$f2');
 BASE['::']=make(glue,'$f2');
 BASE[';']=make(function(x){return undefined; },'$f1');
+
+BASE['dict']=make(dict,'$f2');
+BASE['$dict ## ins']=make(dictins,'$f2');
+BASE['$dict ## key']=make(dictkey,'$f1');
+BASE['$dict ## len']=make(dictlen,'$f1');
+BASE['$dict ## value']=make(dictvalue,'$f1');
+BASE[':>']=BASE['dict'];
+BASE['$dict ## ,']=make(dictins,'$f2');
+
+BASE['$str ## +']=make(function(x,y){emit([x,y],'strplus!');return x+y},'$f2');
+
+BASE['$textfile']=function(fn){
+	if(!fs.existsSync(fn)) return make(make(fn,'$filenotfound'),'$err'); 
+	return {'$textfile':fn};}
+//BASE['$textfile ## load']=make(function(x){return fs.readFileSync($data(x),'utf8');},'$f1');
+BASE['$jsfile ## load']=make(loadjs,'$f1');
+BASE['$pinkfile ## load']=make(loadpink,'$f1');
+BASE['$textfile ## load']=make(loadtext,'$f1');
 
 function context() { var o=Object.assign({},BASE); return emit(o,'new context()'); }
 function attempt(code,C) {
@@ -443,6 +492,27 @@ function code_tests() {
 	c="1,2,3,4 amend (1::10)";r=attempt(c);assert(r[0],[1,10,3,4],'amend0');
 	c="1,2,3,4 amend ((1,3)::(20,50))";r=attempt(c);assert(r[0],[1,20,3,50],'amend1');
 	c="1,2,3,4 amend ((1,3)::20)";r=attempt(c);assert(r[0],[1,20,3,20],'amend2');
+
+	c="1 eq 1";r=attempt(c);assert(r[0],true,'eq0');
+	c="1 eq 2";r=attempt(c);assert(r[0],false,'eq1');
+	c="1,2 eq 2";r=attempt(c);assert(r[0],false,'eq2');
+	c="1 eq 2,1";r=attempt(c);assert(r[0],[false,1],'eq3');
+	c="1 eq (2,1)";r=attempt(c);assert(r[0],false,'eq3haha');
+	c="1,2 eq (2,1)";r=attempt(c);assert(r[0],false,'eq4');
+	c="1,2 eq (1,2)";r=attempt(c);assert(r[0],true,'eq5');
+	c="1,2,3 take 2 eq (1,2)";r=attempt(c);assert(r[0],true,'eq6');
+
+	c="2 case (1,'one',2,'two',3,'three')";r=attempt(c);assert(r[0],'two','case0');
+	c="1 case (1,'one',2,'two',3,'three')";r=attempt(c);assert(r[0],'one','case0b');
+	c="3 case (1,'one',2,'two',3,'three')";r=attempt(c);assert(r[0],'three','case0c');
+	c="4 case (1,'one',2,'two',3,'three')";r=attempt(c);assert(r[0],4,'case1')
+
+	c="'name':>'blob',('age':>22) key";r=attempt(c);assert(r[0],['name','age'],'dict 0');
+	c="'name':>'blob',('age':>22) value";r=attempt(c);assert(r[0],['blob',22],'dict 1');
+	c="'name':>'blob' value";r=attempt(c);assert(r[0],['blob'],'dict 2');
+	c="'name':>'blob' key";r=attempt(c);assert(r[0],['name'],'dict 3');
+	c="'name':>'blob' len";r=attempt(c);assert(r[0],1,'dict 4');
+	c="'name':>'blob',('age':>22) len";r=attempt(c);assert(r[0],2,'dict 5');
 	emit('code tests passed!');
 }
 
@@ -483,3 +553,10 @@ function main() {
 module.exports=PX;
 if(require.main==module) main();
 
+/*
+
+ TODO
+
+ pred() / succ() for trees
+
+*/
