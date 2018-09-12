@@ -328,6 +328,7 @@ BASE['+']=make(function adder(x,y){
 	return eachboth([x,y],function(x,y){emit([x,y],'+e');return x+y})},'$f2');
 BASE['emit']=make(projright(emit,'>> FROM CODELAND'),'$f1');
 BASE['eq']=make(eq,'$f2');
+BASE['find']=make(find,'$f2');
 BASE['get']=make(get,'$f2');
 BASE['importas']=make(importas,'$f2');
 BASE['interp']=interp;
@@ -350,6 +351,8 @@ BASE['til']=make(til,'$f1');
 BASE['trigger']=make(trigger,'$f2');
 BASE['type']=make(type,'$f1');
 BASE['wide']=make_parsing_y_func(wide,'$f2');
+BASE['where']=make(where,'$f2');
+
 // SHORT HAND:
 BASE['@']=BASE['get'];
 BASE['!!']=BASE['amend'];
@@ -357,6 +360,7 @@ BASE['??']=BASE['emit'];
 BASE['->']=BASE['is'];
 BASE['<-']=BASE['as'];
 BASE['##']=BASE['make'];
+BASE['==']=BASE['eq'];
 BASE[',']=make(ins,'$f2');
 BASE['::']=make(glue,'$f2');
 BASE[';']=make(function(x){return undefined; },'$f1');
@@ -508,6 +512,8 @@ function code_tests() {
 	c="1 case (1,'one',2,'two',3,'three')";r=attempt(c);assert(r[0],'one','case0b');
 	c="3 case (1,'one',2,'two',3,'three')";r=attempt(c);assert(r[0],'three','case0c');
 	c="4 case (1,'one',2,'two',3,'three')";r=attempt(c);assert(r[0],4,'case1')
+	c="4 case (1,'one',2,'two',3,'three','other')";r=attempt(c);assert(r[0],'other','case2');
+	//c="4 case (('x eq 4' compile),('yes'),('no'))";r=attempt(c);assert(r[0],'yes','case3 - comp');
 
 	c="'name':>'blob',('age':>22) key";r=attempt(c);assert(r[0],['name','age'],'dict 0');
 	c="'name':>'blob',('age':>22) value";r=attempt(c);assert(r[0],['blob',22],'dict 1');
@@ -515,7 +521,13 @@ function code_tests() {
 	c="'name':>'blob' key";r=attempt(c);assert(r[0],['name'],'dict 3');
 	c="'name':>'blob' len";r=attempt(c);assert(r[0],1,'dict 4');
 	c="'name':>'blob',('age':>22) len";r=attempt(c);assert(r[0],2,'dict 5');
-	c="'name':>'blob',('age':>22)@'age'";r=attempt(c);assert(r[0],22,'dict 6');
+	//c="'name':>'blob',('age':>22)@'age'";r=attempt(c);assert(r[0],22,'dict 6');
+
+	c="1,2,3 where 1";r=attempt(c);assert(r[0],[0],'where 0');
+	c="1,2,3,1 where 1";r=attempt(c);assert(r[0],[0,3],'where 1');
+	c="1,2,3,1 where 4";r=attempt(c);assert(r[0],[],'where 2');
+	c="1,2,3 find 1";r=attempt(c);assert(r[0],0,'find 0');
+	c="1,2,3 find 6";r=attempt(c);assert(r[0],-1,'find 1');
 	emit('code tests passed!');
 }
 

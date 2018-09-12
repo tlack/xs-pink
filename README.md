@@ -220,12 +220,14 @@ complex expression.
 
 ### `x case y` 
 
-Test `x` according to cases in `y`.
+Test `x` according to cases in `y` formatted as `(pred1, result1, pred2, result2, .., elseresult)`
 
 ```
 pink 0> 2 case (1,'one',2,'two',3,'three')
 'two'
 ```
+
+To evaluate custom code as a predicate in `y`, use `compile`.
 
 ### `x compile`
 Parse the code in string x and return function that, when invoked, will interpret it.
@@ -315,10 +317,30 @@ pink 0> 123 emit + 456
 579
 ```
 
+### `x eq y` or `x == y`
+
+Return true if x is exactly equal to y. Takes type tagging into account.
+
+### `x find y` 
+
+Return the index of `y` in `x`, or -1 if not found.
+
+```
+pink 0> 1,2,3 find 3
+2
+pink 1> 1,2,3,3 find 3
+2 
+pink 2> 1,2,3,3 find 4
+-1
+```
+
+To get call indices of matches, use `where`. 
+
 ### `x get y` or `x @ y`
 
 Index x with y. For instance:
-```l
+
+```
 pink 0> 5,6,7,8 get 2
 7
 ```
@@ -429,6 +451,21 @@ pink 1> n deep 'x , 1' make '$json'
 pink 2> n wide 'x , 1' make '$json'
 { '$json': '[[1,2,3,1],[[4,5,6,1],[7,8,9,1],1]]' }
 ```
+
+### `x where y`
+
+Find all indices of x that contain exactly y. Returns an empty list if there are no matches.
+
+```
+pink 0> 1,2,3,1 where 1
+[0,3]
+pink 1> 1,2,3,1 where 2
+[1]
+pink 2> 1,2,3,1 where 4
+[]
+```
+
+See also `find` which returns just the first index (and is thus faster).
 
 # TODO
 

@@ -44,6 +44,7 @@ function xact(Scope) {
 		if (typeof(x)!=='object' && x==y) return true; //simple values - hopefully
 		return JSON.stringify(x)==JSON.stringify(y); } Scope.eq=eq;
 	function empty(x) { return len(x)===0; } Scope.empty=empty;
+	function find(x,y) { let xn=len(x),xi; for(xi=0;xi<xn;xi++) { if(x[xi]===y)return xi; } return -1; } Scope.find=find;
 	function first(x) {
 		if(!tarray(x)) throw 'first(): x::array';
 		return x[0]; } Scope.first=first;
@@ -90,6 +91,9 @@ function xact(Scope) {
 		if(tdict(x)) return Object.values(x);
 		else return x;
 	} Scope.value=value;
+	function where(x,y) {
+		let xn=len(x),xi,R=[]; for(xi=0;xi<xn;xi++) if(eq(x[xi],y)) R.push(xi); return R;
+	} Scope.where=where;
 	// Values: Math-ish
 	function max(min,max) { if(tarray(min)) return Math.max.apply(null,min); else return Math.max(min,max);  }
 	Scope.max=max;
